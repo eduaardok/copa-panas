@@ -1,0 +1,126 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-08-24T00:00:00.000Z",
+  "title": "Design System: Copa Panas",
+  "extensions": {
+    "colorMeta": {
+      "azul-setup": { "role": "primary", "displayName": "Azul Setup", "canonical": "#0052c8" },
+      "dorado-trofeo": { "role": "secondary", "displayName": "Dorado Trofeo", "canonical": "#c9a84c" },
+      "dorado-trofeo-claro": { "role": "secondary", "displayName": "Dorado Trofeo Claro", "canonical": "#e8c96d" },
+      "verde-grupos": { "role": "tertiary", "displayName": "Verde Fase de Grupos", "canonical": "#00a64e" },
+      "rojo-eliminacion": { "role": "tertiary", "displayName": "Rojo Eliminación", "canonical": "#e0182d" },
+      "fondo-cancha": { "role": "neutral", "displayName": "Cancha Negra", "canonical": "#07090f" },
+      "fondo-cancha-medio": { "role": "neutral", "displayName": "Cancha Negra Media", "canonical": "#0d1118" },
+      "fondo-tarjeta": { "role": "neutral", "displayName": "Fondo de Tarjeta", "canonical": "#121826" },
+      "texto-principal": { "role": "neutral", "displayName": "Blanco Marcador", "canonical": "#f0f3f8" },
+      "texto-secundario": { "role": "neutral", "displayName": "Gris Silbato", "canonical": "#6b7a8d" }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display", "purpose": "Input de marcador en el modal de resultado — el número más grande de la app." },
+      "headline": { "displayName": "Headline", "purpose": "Título de header, nombre de ronda, phase label del bracket." },
+      "title": { "displayName": "Title", "purpose": "Puntaje inline: score-badge, bracket-team-score, cl-pts." },
+      "body": { "displayName": "Body", "purpose": "Nombres de jugador, botones, texto de tarjetas." },
+      "label": { "displayName": "Label", "purpose": "Headers de tabla, form-label, badges de estado, uppercase." }
+    },
+    "shadows": [
+      { "name": "glow-dorado-campeon", "value": "text-shadow: 0 0 24px rgba(201,168,76,0.9), 0 0 48px rgba(201,168,76,0.45)", "purpose": "Pantalla de campeón, animado en pulso 2.2s — momento de mayor peso emocional." },
+      { "name": "glow-boton-primario", "value": "0 4px 20px rgba(0,82,200,0.35)", "purpose": "Elevación sutil en botones de acción (primary/danger/success), nunca en tarjetas." },
+      { "name": "sombra-header-nav", "value": "0 2px 20px rgba(0,0,0,0.6)", "purpose": "Separa el marco fijo (header) del contenido que se desplaza debajo." },
+      { "name": "halo-foco-input", "value": "0 0 0 3px rgba(0,82,200,0.18)", "purpose": "Anillo de foco de inputs — no es sombra de profundidad." }
+    ],
+    "motion": [
+      { "name": "ease-estandar", "value": "ease", "purpose": "Transición por defecto de color/borde/background (200-250ms)." },
+      { "name": "press-scale", "value": "transform 150ms ease; scale(0.97)", "purpose": "Feedback táctil de botones y tarjetas interactivas al presionar." },
+      { "name": "slide-in-up", "value": "translateY(14px)→0, opacity 0→1, 200-280ms ease", "purpose": "Entrada de filas de lista (jugador, sorteo, match card)." }
+    ],
+    "breakpoints": []
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Botón de acción principal — gradiente azul, feedback de escala al presionar.",
+      "html": "<button class=\"ds-btn-primary\">Confirmar</button>",
+      "css": ".ds-btn-primary { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 48px; padding: 12px 20px; border-radius: 14px; font-size: 15px; font-weight: 700; font-family: Inter, sans-serif; border: none; cursor: pointer; color: #ffffff; background: linear-gradient(135deg, #003d99 0%, #0052c8 100%); box-shadow: 0 4px 20px rgba(0,82,200,0.35); transition: transform 150ms ease, box-shadow 200ms ease; } .ds-btn-primary:active { transform: scale(0.97); box-shadow: 0 2px 8px rgba(0,82,200,0.25); } .ds-btn-primary:focus-visible { outline: 2px solid #5ba0ff; outline-offset: 2px; }"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Botón glass de acción secundaria.",
+      "html": "<button class=\"ds-btn-secondary\">Cancelar</button>",
+      "css": ".ds-btn-secondary { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 48px; padding: 12px 20px; border-radius: 14px; font-size: 15px; font-weight: 700; font-family: Inter, sans-serif; border: 1px solid rgba(255,255,255,0.07); cursor: pointer; color: #f0f3f8; background: rgba(255,255,255,0.07); transition: transform 150ms ease; } .ds-btn-secondary:active { transform: scale(0.97); } .ds-btn-secondary:focus-visible { outline: 2px solid #5ba0ff; outline-offset: 2px; }"
+    },
+    {
+      "name": "Score Badge",
+      "kind": "custom",
+      "refersTo": "score-badge",
+      "description": "El componente insignia del sistema: número de marcador en Bebas Neue dorado.",
+      "html": "<span class=\"ds-score-badge\">3</span>",
+      "css": ".ds-score-badge { background: rgba(201,168,76,0.12); border: 1px solid rgba(201,168,76,0.25); border-radius: 8px; padding: 3px 9px; font-family: 'Bebas Neue', cursive; font-size: 22px; color: #c9a84c; min-width: 34px; text-align: center; line-height: 1; display: inline-block; }"
+    },
+    {
+      "name": "Form Input",
+      "kind": "input",
+      "refersTo": "form-input",
+      "description": "Campo de texto estándar — foco azul con halo, tamaño 16px para evitar zoom de Safari.",
+      "html": "<input class=\"ds-form-input\" type=\"text\" placeholder=\"Nombre del jugador\" />",
+      "css": ".ds-form-input { width: 100%; background: rgba(255,255,255,0.05); border: 1.5px solid rgba(255,255,255,0.07); border-radius: 12px; padding: 12px 14px; font-size: 16px; font-family: Inter, sans-serif; color: #f0f3f8; outline: none; transition: border-color 200ms ease, box-shadow 200ms ease; } .ds-form-input::placeholder { color: rgba(255,255,255,0.2); } .ds-form-input:focus { border-color: #0052c8; box-shadow: 0 0 0 3px rgba(0,82,200,0.18); }"
+    },
+    {
+      "name": "Match Card",
+      "kind": "card",
+      "refersTo": "match-card",
+      "description": "Tarjeta de partido — plana en reposo, borde izquierdo verde y fondo tenue al completarse.",
+      "html": "<div class=\"ds-match-card ds-completed\"><span class=\"ds-match-name\">Eduardo</span><span class=\"ds-score-badge\">3</span></div>",
+      "css": ".ds-match-card { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07); border-radius: 12px; padding: 11px 12px; display: flex; align-items: center; gap: 8px; cursor: pointer; transition: background 200ms ease, border-color 200ms ease, transform 150ms ease; } .ds-match-card:active { background: rgba(255,255,255,0.07); transform: scale(0.99); } .ds-match-card.ds-completed { border-color: rgba(0,166,78,0.3); border-left: 3px solid #00a64e; background: rgba(0,166,78,0.04); } .ds-match-name { font-size: 13px; font-weight: 600; color: #f0f3f8; }"
+    },
+    {
+      "name": "Pill Tab",
+      "kind": "nav",
+      "refersTo": "grupo-tab",
+      "description": "Tab tipo píldora reutilizada para grupos, rondas y conteos de clasificados — el color activo cambia según rol.",
+      "html": "<button class=\"ds-pill-tab ds-active\">Grupo A</button>",
+      "css": ".ds-pill-tab { flex-shrink: 0; padding: 7px 18px; border-radius: 20px; font-size: 13px; font-weight: 700; border: 1.5px solid rgba(255,255,255,0.07); background: rgba(255,255,255,0.04); color: #6b7a8d; cursor: pointer; transition: all 200ms ease; min-height: 36px; font-family: Inter, sans-serif; } .ds-pill-tab.ds-active { background: rgba(0,166,78,0.12); border-color: #00a64e; color: #4dcc88; }"
+    },
+    {
+      "name": "Bottom Nav Tab",
+      "kind": "nav",
+      "refersTo": "nav-tab",
+      "description": "Tab de navegación inferior fija (mobile) — ícono + label, dorado en estado activo.",
+      "html": "<button class=\"ds-nav-tab ds-active\"><span>&#9733;</span><span class=\"ds-nav-label\">Torneo</span></button>",
+      "css": ".ds-nav-tab { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; padding: 10px 4px; min-height: 56px; color: #6b7a8d; font-size: 10px; font-weight: 600; letter-spacing: 0.03em; transition: color 200ms ease; border: none; background: transparent; cursor: pointer; } .ds-nav-tab.ds-active { color: #c9a84c; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "El Marcador de Cancha",
+    "overview": "Copa Panas se ve y se siente como el scoreboard físico de un estadio, no como una app de productividad con tema oscuro. El fondo casi negro (#07090f) es el cielo nocturno sobre la cancha; el stripe tricolor rojo/azul/verde bajo el header es la iluminación del estadio; el dorado es el trofeo brillando al centro de todo. Los números de marcador en Bebas Neue —grandes, condensados, sin adornos— son el elemento que más comunica personalidad: cada partido, cada bracket, cada tabla de posiciones vuelve al mismo lenguaje de \"esto es un resultado deportivo real\", no una tarjeta de datos genérica.\n\nEl tono es deportivo serio con un guiño gamer: contraste alto, tipografía de impacto para números y estados de victoria, glow dorado en momentos que lo ameritan (campeón, líder de grupo, foco de input) — pero nunca decorativo por defecto. Explícitamente evita dos extremos: la plantilla SaaS genérica (tarjetas planas sin personalidad, azul corporativo sin urgencia) y la estética infantil o excesivamente lúdica. Es una app para amigos, no para una oficina ni para un torneo de niños.\n\nEl sistema es dual-theme real: modo oscuro (marcador bajo las luces de noche) y modo claro (marcador de día, mismo estadio) son ambos ciudadanos de primera clase con el mismo lenguaje de componentes — el modo claro no es una variante de compromiso, es la misma metáfora reinterpretada con luz de día.",
+    "keyCharacteristics": [
+      "Fondo casi negro con superficies planas (glass sutil, sin sombras reales) — la profundidad se comunica con glow de color, no con elevación.",
+      "Bebas Neue reservado exclusivamente para números y marcadores; Inter para todo lo demás.",
+      "Cuatro colores con significado futbolero fijo (azul=acción/setup, dorado=logro/trofeo, verde=fase de grupos, rojo=eliminación) — el color codifica rol, no solo estética.",
+      "Cero emojis; únicamente Font Awesome o SVG inline.",
+      "Modo oscuro y modo claro son ambos completos y deliberados, no un fallback del otro."
+    ],
+    "rules": [
+      { "name": "La Regla del Color con Rol", "body": "Ningún color se usa \"porque queda bien\" — azul es siempre acción, dorado es siempre logro, verde es siempre grupos, rojo es siempre eliminación/peligro. Si una pantalla nueva necesita destacar algo, primero se pregunta qué rol futbolero le corresponde antes de elegir el tono.", "section": "colors" },
+      { "name": "La Regla del Marcador", "body": "Bebas Neue nunca se usa para texto de lectura continua ni para labels — solo para números y títulos de pantalla cortos. Si el texto tiene más de ~3 palabras, es Inter.", "section": "typography" },
+      { "name": "La Regla Plano-por-Defecto", "body": "Las superficies de contenido (tarjetas, filas, tablas) están planas en reposo. Una sombra o glow solo aparece como respuesta a un estado real: victoria, foco, error, campeón — nunca como decoración de reposo.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do usar Bebas Neue únicamente para números de marcador y títulos cortos de pantalla — nunca para texto de lectura continua.",
+      "Do mantener el color ligado a su rol futbolero fijo (azul=acción, dorado=logro, verde=grupos, rojo=eliminación/peligro) al introducir nuevas pantallas o competiciones (Champions, etc.).",
+      "Do reservar sombra/glow real para respuestas a estado (victoria, foco, error, campeón) — superficies en reposo se quedan planas.",
+      "Do construir modo claro y modo oscuro como dos expresiones completas de la misma metáfora (\"El Marcador de Cancha\" de día y de noche), nunca uno como fallback apurado del otro.",
+      "Do mantener touch targets ≥44px y font-size: 16px en inputs, incluso en componentes nuevos de desktop."
+    ],
+    "donts": [
+      "Don't introducir sombras decorativas de reposo (drop shadows tipo Material en tarjetas) — rompe la Regla Plano-por-Defecto.",
+      "Don't usar un color fuera de su rol asignado (ej. verde para un botón de acción que no es de fase de grupos).",
+      "Don't dejar que el modo claro sea una inversión mecánica de colores sin ajustar el peso relativo — cada superficie del modo claro ya tiene un valor definido en el CSS incumbente, no se re-deriva por fórmula.",
+      "Don't usar emojis en ningún lugar de la interfaz — solo Font Awesome o SVG inline.",
+      "Don't estirar el patrón de bottom-nav fija de mobile directamente a desktop sin repensarlo."
+    ]
+  }
+}

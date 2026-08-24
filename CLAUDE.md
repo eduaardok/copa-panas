@@ -1,199 +1,167 @@
-# Torneo Amigos FC 26 — Especificación para Claude Code
+# Copa Panas — CLAUDE.md
 
-## Objetivo
-Construir una aplicación web completa (sin backend, sin base de datos) para gestionar un torneo de fútbol entre amigos inspirado en el Mundial 2026. Toda la persistencia usa `localStorage`. La app debe funcionar abriendo `index.html` directamente en el navegador móvil (Android).
+## Qué es esto ahora
+
+Este proyecto nació como "Torneo Amigos FC 26": una app de torneo de
+fútbol entre amigos con tema fijo Mundial 2026. Está evolucionando a
+**Copa Panas v2**, una app multi-competición (Mundial + Champions
+League, con más por venir) que arranca desde una pantalla de selección
+de competición y desacopla el motor de torneo de la capa de tema/
+formato de cada una.
+
+Este archivo es el punto de entrada que Claude Code lee al inicio de
+cada sesión. Para las reglas de arquitectura no negociables y las
+decisiones de diseño ya cerradas, la fuente de verdad es
+**`.specify/memory/constitution.md`** — este documento no la repite
+en detalle, la referencia.
 
 ---
 
-## Stack técnico
+## Metodología de trabajo: Spec-Driven Development (Spec Kit)
+
+Este proyecto usa GitHub Spec Kit. El flujo de trabajo es:
+
+```
+/speckit.constitution   → ya corrido. Ver .specify/memory/constitution.md
+/speckit.specify        → define QUÉ se construye (objetivo, criterios de aceptación)
+/speckit.clarify         → resuelve ambigüedades antes de planear
+/speckit.plan            → arquitectura técnica de la feature
+/speckit.tasks           → desglosa el plan en tareas ejecutables
+/speckit.analyze         → verifica consistencia contra la constitución (solo lectura)
+/speckit.implement       → ejecuta las tareas
+```
+
+Reglas para Claude Code en este proyecto:
+- **No se implementa nada sin spec previa.** Si se te pide una feature
+  sin que exista un spec en `specs/`, el primer paso es generarlo, no
+  escribir código directamente.
+- **La constitución tiene precedencia.** Si un spec o plan entra en
+  conflicto con `.specify/memory/constitution.md`, se señala el
+  conflicto explícitamente — no se resuelve en silencio ni a favor de
+  lo más fácil de implementar.
+- Los specs viven en `specs/NNN-nombre-feature/` (spec.md, plan.md,
+  tasks.md), numerados secuencialmente.
+- Antes de dar una tarea por terminada, se corre `/speckit.analyze`
+  contra la constitución.
+
+---
+
+## Stack técnico (se mantiene desde v1)
+
 - **HTML5** (`index.html`)
-- **CSS3** (`styles.css`) + **Tailwind CSS via CDN**
+- **CSS3** (`styles.css`) + **Tailwind CSS vía CDN**
 - **JavaScript ES6+** (`app.js`)
-- **Font Awesome** via CDN (iconos)
-- **Google Fonts** — usar "Bebas Neue" para títulos y "Inter" para texto
-- Sin build tools, sin Node, sin bundlers. Todo funciona abriendo `index.html`.
+- **Font Awesome** vía CDN (iconos — cero emojis en toda la interfaz)
+- **Google Fonts** — Bebas Neue (títulos/marcadores) e Inter (texto)
+- Sin build tools, sin Node, sin bundlers. Todo debe funcionar abriendo
+  `index.html` directamente o vía GitHub Pages.
+- Persistencia: `localStorage`. El esquema de claves puede crecer más
+  allá de `torneo_data` según lo que definan los specs de v2 (torneo
+  activo global + pool de jugadores reutilizable — ver constitución,
+  decisiones D1 y D4).
 
 ---
 
-## Archivos a generar
-```
-index.html   — estructura y CDN links
-styles.css   — estilos custom (lo que Tailwind no cubra, animaciones, tema)
-app.js       — toda la lógica (bien comentado, modular)
-```
+## Responsive: mobile-first, pero PC también importa
+
+**Esto es un requisito nuevo de v2, no estaba en el spec original.**
+La v1 fue diseñada exclusivamente para mobile (bottom nav fijo estilo
+app nativa, modales tipo bottom-sheet, sin ningún breakpoint de
+escritorio). La v2 debe verse igual de cuidada en pantallas grandes,
+sin dejar de ser excelente en el celular.
+
+Reglas concretas:
+- **Mobile sigue siendo la prioridad de diseño** — la mayoría de las
+  partidas se van a registrar desde el celular, en vivo, durante el
+  torneo. Ningún ajuste de desktop puede degradar la experiencia
+  mobile actual (touch targets ≥44px, `dvh` en vez de `vh`, sin zoom
+  automático de Safari, etc. — ver sección de estándares de código).
+- **Desktop no es "mobile estirado".** No basta con centrar el layout
+  mobile en una columna angosta dentro de una pantalla grande. Los
+  componentes que tienen sentido reflow en desktop deben aprovechar el
+  espacio (ej. tabla de posiciones y bracket pueden mostrarse con más
+  contexto simultáneo, la navegación inferior fija de mobile no tiene
+  por qué mantenerse igual en pantallas anchas).
+- Definir breakpoints concretos (mobile / tablet / desktop) es tarea
+  del spec/plan de rediseño visual, no de este documento — pero
+  cualquier plan de UI debe incluir explícitamente el comportamiento
+  en al menos esos tres anchos, no solo mobile.
+- Esto debe reflejarse en las respuestas de `/impeccable init`
+  (plataforma: web, adaptive — no "mobile-only") y respetarse en
+  cualquier pase de `/impeccable polish` o `/impeccable audit`.
 
 ---
 
-## Diseño visual — Tema Mundial 2026
-- **Paleta:** azul marino oscuro `#0a1628`, dorado `#c9a84c`, blanco `#ffffff`, rojo acento `#e63946`
-- **Estilo:** app deportiva moderna — gradientes oscuros, cards con bordes dorados, tipografía impactante
-- **Mobile-first** y responsive. Optimizado para Android (pantallas 360px–430px de ancho)
-- **Tema oscuro** por defecto (toggle para cambiar a claro)
-- **Accesible:** contraste suficiente, touch targets mínimo 44px, labels en todos los inputs
-- Logo del torneo: el usuario puede subir una imagen O escribir un nombre que se muestre como título estilizado
-- Nombre del torneo configurable (se guarda en localStorage)
+## Diseño visual
+
+- **Rediseño profundo en v2**, aplicado a toda la app (no solo
+  pantallas nuevas de Champions) — ver constitución, Principio VI y
+  spec de refactor+rediseño combinado.
+- Paleta de Mundial se mantiene: negro `#07090f`, rojo `#e0182d`, azul
+  `#0052c8`, verde `#00a64e`, dorado `#c9a84c`. Champions define su
+  propia paleta (punto de partida: negro/plata/azul UEFA) como parte
+  de su spec específica, no de esta.
+- Toda animación e interacción debe respetar el Principio VI de la
+  constitución: propósito claro, `transform`/`opacity` antes que
+  layout, `prefers-reduced-motion`, coherencia entre pantallas y entre
+  competiciones. Esto se ejecuta con las skills `impeccable` y
+  `emil-design-eng` instaladas en el proyecto — no se reinventan
+  reglas de motion por fuera de ellas.
+- **Cero emojis** en cualquier parte de la interfaz — navegación,
+  tablas, botones, mensajes, pantalla de campeón. Solo Font Awesome o
+  SVG inline.
 
 ---
 
-## Flujo de la aplicación
+## Estándares de código (se mantienen desde v1)
 
-### Pantalla 0 — Setup inicial
-- Ingresar nombre del torneo (input destacado, tipografía grande)
-- Subir logo (opcional, se guarda como base64 en localStorage) — mostrar preview inmediato al subir
-- Definir cantidad de jugadores (mínimo 4, sin máximo fijo — el usuario decide lo que tiene sentido)
-- **Registro de jugadores — UX cuidado:**
-  - Al definir la cantidad, aparecen los inputs dinámicamente (uno por jugador)
-  - Cada input tiene: número de jugador como label visual (#1, #2...), campo de nombre con placeholder "Nombre del jugador"
-  - Botones para añadir (+) o quitar (−) jugadores en cualquier momento antes de confirmar
-  - Validación en tiempo real: nombres vacíos o duplicados se marcan en rojo con mensaje claro
-  - El foco avanza automáticamente al siguiente input al presionar Enter (mobile-friendly)
-  - Botón "Confirmar jugadores" solo habilitado cuando todos los nombres están válidos
-- Asignar equipo de FC 26 a cada jugador:
-  - **Opción A — Aleatorio:** la app sortea equipos del pool de FC 26 sin repetir
-  - **Opción B — Manual:** el usuario elige el equipo de cada jugador desde un dropdown
-  - Pool de equipos FC 26 disponibles (los 15 mejores por defecto, hardcodeados en `app.js`):
-    Argentina, Francia, Brasil, Inglaterra, Portugal, España, Alemania, Países Bajos, Bélgica, Italia, Uruguay, Colombia, Croacia, Marruecos, Estados Unidos
-  - Si hay más jugadores que equipos en el pool, el usuario puede añadir equipos extra manualmente
+- Comentarios en español, funciones pequeñas con nombres descriptivos
+  en español (`calcularPosiciones`, `generarCalendario`, etc.) — este
+  estándar se extiende también al código nuevo de v2, incluida
+  cualquier capa de configuración de competición.
+- Sin dependencias externas más allá de las ya listadas en el stack.
+  Sumar una librería nueva vía CDN se evalúa caso por caso (ver
+  Principio I de la constitución), no se agrega sin justificarlo en el
+  spec correspondiente.
+- No usar `eval()`, no usar `document.write()`.
+- Manejar errores con `try/catch` donde haya riesgo real (parsing
+  JSON, localStorage lleno, etc.).
+- El motor de torneo (cálculo de posiciones, generación de calendario,
+  avance de bracket) no debe importar ni referenciar constantes
+  específicas de competición — ver Principio II de la constitución.
+  Esto es una regla dura, no una preferencia de estilo.
 
-### Pantalla 1 — Configuración de grupos
-- El usuario define:
-  - Cantidad de grupos
-  - Cantidad de equipos por grupo (la app sugiere una distribución razonable según el total de jugadores, pero el usuario puede cambiarla)
-  - Ejemplo sugerido: 9 jugadores → 3 grupos de 3; 10 jugadores → 2 grupos de 3 + 1 grupo de 4; 12 jugadores → 3 grupos de 4
-- **Sorteo:**
-  - El usuario puede marcar jugadores como "cabeza de grupo" (uno por grupo máximo)
-  - Los cabezas de grupo se fijan como primeros de su grupo antes del sorteo
-  - El resto se sortea aleatoriamente
-  - Botón "Realizar sorteo" con animación visual de bombos
-  - **Alternativa manual:** el usuario puede arrastrar/asignar jugadores a grupos directamente sin sorteo
-- Mostrar resultado del sorteo antes de confirmar
-- Una vez confirmado, el torneo se marca como "iniciado" y la configuración se bloquea
-
-### Pantalla 2 — Fase de grupos
-- Mostrar todos los grupos con sus tablas de posiciones
-- Columnas de la tabla: Jugador | Equipo | PJ | PG | PE | PP | GF | GC | DG | PTS
-- Calendario de partidos generado automáticamente (todos contra todos dentro del grupo, round-robin)
-- Cada partido muestra: Jugador A (Equipo A) vs Jugador B (Equipo B) — resultado editable
-- Al registrar resultado (goles de cada lado), la tabla se actualiza inmediatamente
-- Se permiten empates (0-0, 1-1, etc.)
-- Criterios de desempate para ordenar tabla (en orden):
-  1. Puntos
-  2. Diferencia de goles
-  3. Goles a favor
-  4. Resultado directo entre empatados
-- Partidos con resultado registrado se muestran distintos (check verde) de los pendientes
-
-### Pantalla 3 — Clasificados y armado de cruces
-- Mostrar tabla de todos los jugadores ordenados por rendimiento en grupos (para referencia)
-- **El usuario arma los cruces manualmente:**
-  - La app muestra todos los clasificados disponibles
-  - El usuario elige cuántos clasifican (2, 4, 8, 16 — para que la fase de eliminación sea limpia)
-  - El usuario arrastra o selecciona quién enfrenta a quién en cada cruce
-  - La app valida que todos los clasificados estén emparejados antes de continuar
-  - Razón: pueden ocurrir imprevistos (alguien se fue, empates raros, acuerdos entre jugadores)
-
-### Pantalla 4 — Fase de eliminación directa
-- Mostrar llave (bracket) visual según los cruces definidos
-- Fases posibles: Final, Semifinales, Cuartos, Octavos (según cuántos clasificaron)
-- Registrar resultado de cada partido de la llave
-- Al completar una ronda, la app avanza automáticamente a la siguiente generando los cruces del lado del bracket (ganadores al siguiente partido correspondiente)
-- Mostrar el campeón cuando se complete la final
-- Si hay empate en eliminación directa: mostrar campo para penales (quién ganó los penales)
-
-### Pantalla 5 — Dashboard / Vista general
-- Vista accesible desde cualquier punto del torneo (tab o menú)
-- Muestra todo en un solo lugar:
-  - Estado del torneo (fase actual)
-  - Tablas de grupos resumidas
-  - Clasificados
-  - Llave de eliminación con resultados
-  - Campeón (si el torneo terminó) con animación/confetti
-- Nombre y logo del torneo siempre visibles en el header
+### Compatibilidad mobile (se mantiene, ahora junto a desktop)
+- Evitar `vh` en iOS (usar `dvh` o JS para altura real).
+- No usar `hover` como única indicación de estado (iOS no tiene hover;
+  además ahora hay que pensar en el estado hover real de desktop, que
+  sí debe usarse ahí donde aporte).
+- Touch events y scroll nativo sin bloqueos.
+- Inputs con `font-size: 16px` mínimo para evitar zoom automático de
+  Safari.
+- Todos los modales/popups se cierran con botón X y tocando/clickeando
+  fuera del área — en desktop esto debe funcionar igual con mouse.
 
 ---
 
-## Navegación
-- Barra de navegación inferior fija (mobile-style) con tabs:
-  - 🏠 Inicio (Dashboard)
-  - 👥 Grupos
-  - 🏆 Llave
-  - ⚙️ Config
-- La tab activa resaltada en dorado
+## Deploy
 
----
-
-## Extras
-- **Reiniciar torneo:** botón en Config con confirmación (borra localStorage)
-- **Exportar JSON:** descarga el estado completo del torneo como `.json`
-- **Importar JSON:** sube un `.json` y restaura el estado (útil si alguien más quiere ver el torneo)
-- **Compartir:** botón para copiar un resumen del torneo al clipboard (texto plano con los resultados)
-
----
-
-## Persistencia (localStorage)
-Guardar en una sola clave `torneo_data` como JSON con esta estructura:
-```json
-{
-  "meta": { "nombre": "", "logo": "", "tema": "dark" },
-  "jugadores": [],
-  "grupos": [],
-  "partidos_grupos": [],
-  "clasificados": [],
-  "cruces": [],
-  "partidos_eliminacion": [],
-  "campeon": null,
-  "fase": "setup"
-}
-```
-Toda acción del usuario guarda inmediatamente. Al cargar la app, restaurar desde localStorage si existe data.
-
----
-
-## Código — estándares
-- Todo el JS documentado con comentarios en español
-- Funciones pequeñas y con nombres descriptivos en español (`calcularPosiciones`, `generarCalendario`, etc.)
-- Sin dependencias externas más allá de Tailwind CDN y Font Awesome CDN
-- No usar `eval()`, no usar `document.write()`
-- Manejar errores con `try/catch` donde haya riesgo (parsing JSON, localStorage lleno, etc.)
-- El código debe ser legible y mantenible — como si lo fuera a leer otro desarrollador
+- GitHub Pages. Rutas relativas siempre (`./styles.css`, `./app.js`).
+- Debe funcionar tanto con `file://` como desde
+  `https://usuario.github.io/repo/`.
+- `index.html` en la raíz del repo.
+- CDN links siempre HTTPS.
 
 ---
 
 ## Notas importantes
-- **Cero emojis:** está prohibido usar emojis en cualquier parte de la app — navegación, tablas, botones, mensajes, pantalla de campeón. Usar exclusivamente Font Awesome o SVG para representar íconos
-- La app NO fuerza estructuras de grupos ni de eliminación — el usuario siempre tiene la última palabra
-- Si el localStorage está vacío, mostrar el setup inicial
-- Si hay datos guardados, mostrar el dashboard con opción de continuar o reiniciar
-- Funcionar perfectamente en Chrome para Android **y Safari para iPhone** (iOS 15+)
-  - Evitar `vh` en iOS (usar `dvh` o JS para altura real)
-  - No usar `hover` como única indicación de estado (iOS no tiene hover)
-  - Touch events y scroll nativo sin bloqueos
-  - Inputs con `font-size: 16px` mínimo para evitar el zoom automático de Safari al hacer foco
-- Todos los modales/popups deben cerrarse con botón X y también tocando fuera del área
 
----
-
-## Deploy — GitHub Pages
-- La app debe funcionar deployada en GitHub Pages (subiendo los 3 archivos al repo)
-- **No usar rutas absolutas** — todas las referencias a archivos con rutas relativas (`./styles.css`, `./app.js`)
-- No depender de un servidor local — todo debe funcionar con el protocolo `file://` y también desde `https://usuario.github.io/repo/`
-- El `index.html` debe ser el punto de entrada en la raíz del repo
-- Los CDN links deben ser HTTPS
-
----
-
-## Diseño — nivel premium
-El diseño debe verse como una app deportiva profesional, no un proyecto universitario. Referencia visual: mezcla entre la app oficial de la FIFA y ESPN. Específicamente:
-
-- **Header:** logo del torneo + nombre centrado, con fondo degradado oscuro y borde inferior dorado
-- **Cards de grupos:** fondo semi-transparente con blur (glassmorphism sutil), borde con gradiente dorado, sombra profunda
-- **Tabla de posiciones:** filas alternadas, el líder de cada grupo destacado con borde dorado a la izquierda
-- **Bracket de eliminación:** visual tipo llave real — líneas conectando los partidos, fondo oscuro, equipos con escudos emoji o banderas
-- **Animación de sorteo:** overlay con efecto de "bombo girando" — mostrar jugadores uno a uno asignándose a grupos con transición
-- **Campeón:** pantalla especial con animación de confetti (canvas o CSS), trofeo emoji gigante, nombre del campeón con efecto glow dorado
-- **Botones:** esquinas redondeadas, gradiente azul-dorado en CTAs principales, efecto ripple al tocar
-- **Inputs y formularios:** estilo dark con borde que se ilumina en dorado al hacer foco, placeholder en gris claro
-- **Tipografía:** "Bebas Neue" para nombres de equipos y marcadores; "Inter" para texto general — ambas desde Google Fonts
-- **Iconos:** Font Awesome para toda la iconografía (balón, trofeo, grupo, calendario, etc.) — **no usar emojis en ninguna parte de la interfaz**, ni en botones, ni en tablas, ni en la pantalla de campeón; reemplazar cualquier emoji por íconos de Font Awesome o SVG inline
-- **Micro-interacciones:** transiciones suaves (200-300ms) en cambios de pantalla, cards que suben levemente al tocar
-- El diseño debe impresionar cuando alguien lo abra por primera vez
+- La app no fuerza estructuras de grupos ni de eliminación — el
+  usuario siempre tiene la última palabra, dentro de los límites que
+  define el formato configurado (ver constitución, decisión D3).
+- Si `localStorage` está vacío, se muestra la pantalla de selección de
+  competición (en v1 era el setup directo — esto cambia en v2, ver
+  constitución D1).
+- Funcionar perfectamente en Chrome para Android y Safari para iPhone
+  (iOS 15+), y ahora también en navegadores de escritorio modernos
+  (Chrome, Safari, Firefox, Edge).
