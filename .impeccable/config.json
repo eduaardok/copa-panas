@@ -1,0 +1,74 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "broken-image",
+        "value": "*",
+        "files": [
+          "index.html"
+        ],
+        "createdAt": "2026-08-25T06:50:33.678Z",
+        "reason": "logo images intentionally empty src until user uploads one at runtime (pre-existing v1 pattern, out of scope for 001-desacople-motor-rediseno)"
+      },
+      {
+        "rule": "design-system-color",
+        "value": "#ff7080",
+        "createdAt": "2026-08-25T06:50:33.821Z",
+        "reason": "pre-existing v1 error-state color on cruces-validation, unrelated to this feature"
+      },
+      {
+        "rule": "overused-font",
+        "value": "inter",
+        "createdAt": "2026-08-25T06:55:33.542Z",
+        "reason": "Inter is explicitly mandated project-wide by CLAUDE.md (stack: Bebas Neue for titles, Inter for body text) — sanctioned choice, not AI-generated drift"
+      },
+      {
+        "rule": "side-tab",
+        "value": "border-left: 3px solid var(--gold)",
+        "createdAt": "2026-08-25T07:32:02.734Z",
+        "reason": "DESIGN.md (Cards/Containers, ya comiteado antes de esta sesión) documenta explícitamente este borde como el indicador de estado líder/completado del sistema — no es drift, es la Regla nombrada 'borde de color sólido a la izquierda marca estado completado/líder'"
+      },
+      {
+        "rule": "side-tab",
+        "value": "border-left: 3px solid var(--green)",
+        "createdAt": "2026-08-25T07:32:02.890Z",
+        "reason": "mismo patrón documentado en DESIGN.md (match-card.completed), aplicado a fase de grupos por rol de color verde=grupos"
+      },
+      {
+        "rule": "side-tab",
+        "value": "*",
+        "files": [
+          "styles.css"
+        ],
+        "createdAt": "2026-08-25T07:32:03.023Z",
+        "reason": "stripe tricolor del header (.app-header::after) es la identidad visual central de Mundial 2026 (FR-010), documentado en DESIGN.md como parte del North Star 'la iluminación del estadio'"
+      },
+      {
+        "rule": "design-system-color",
+        "value": "rgba(0,0,0,0.35)",
+        "createdAt": "2026-08-25T07:34:14.856Z",
+        "reason": "sombra de nav en desktop, misma familia que la sombra de header ya documentada (rgba(0,0,0,0.6)) — variante de opacidad del mismo patrón, no un color nuevo"
+      },
+      {
+        "rule": "design-system-color",
+        "value": "rgba(0,0,0,0.1)",
+        "createdAt": "2026-08-25T07:34:15.005Z",
+        "reason": "borde de tema claro, mismo patrón que --border ya documentado en modo claro (rgba(0,0,0,0.09))"
+      },
+      {
+        "rule": "design-system-font-size",
+        "value": "13px",
+        "createdAt": "2026-08-25T07:34:15.150Z",
+        "reason": "dentro del rango body ya documentado en DESIGN.md (13-16px)"
+      },
+      {
+        "rule": "design-system-font-size",
+        "value": "16px",
+        "createdAt": "2026-08-25T07:34:15.289Z",
+        "reason": "dentro del rango body ya documentado en DESIGN.md (13-16px), y ya usado en font-input/inputs"
+      }
+    ]
+  }
+}

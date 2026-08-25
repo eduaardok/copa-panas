@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <title>Torneo Amigos FC 26</title>
+  <title>Copa Panas</title>
 
   <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -26,9 +26,6 @@
             gold:       '#c9a84c',
             'gold-light':'#e8c96d',
             accent:     '#e0182d',
-            'wc-red':   '#e0182d',
-            'wc-blue':  '#0052c8',
-            'wc-green': '#00a64e',
           },
           fontFamily: {
             bebas: ['"Bebas Neue"', 'cursive'],
@@ -56,7 +53,7 @@
           <p id="header-phase" class="text-xs text-gray-400 leading-none mt-0.5">Configuración</p>
         </div>
       </div>
-      <button id="btn-theme-toggle" class="w-10 h-10 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 transition-colors" aria-label="Cambiar tema">
+      <button id="btn-theme-toggle" class="w-11 h-11 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 transition-colors" aria-label="Cambiar tema">
         <i class="fa-solid fa-moon text-gold"></i>
       </button>
     </div>
@@ -66,9 +63,22 @@
   <main id="app-main" class="pb-20">
 
     <!-- ======================================================
+         PANTALLA -1 — SELECCIÓN DE COMPETICIÓN
+    ====================================================== -->
+    <section id="screen-competicion" class="screen active px-4 pt-10 pb-6">
+      <div class="setup-hero text-center mb-8">
+        <i class="fa-solid fa-trophy text-6xl text-gold drop-shadow-lg mb-4"></i>
+        <h2 class="font-bebas text-5xl text-white tracking-widest leading-none">COPA</h2>
+        <h2 class="font-bebas text-5xl text-gold tracking-widest leading-none">PANAS</h2>
+        <p class="text-gray-400 text-sm mt-3">Elegí la competición para tu torneo</p>
+      </div>
+      <div id="lista-competiciones" class="space-y-3"></div>
+    </section>
+
+    <!-- ======================================================
          PANTALLA 0 — SETUP INICIAL
     ====================================================== -->
-    <section id="screen-setup" class="screen active px-4 pt-8 pb-6">
+    <section id="screen-setup" class="screen px-4 pt-8 pb-6">
       <div class="setup-hero text-center mb-8">
         <div class="trophy-icon mb-4">
           <i class="fa-solid fa-trophy text-6xl text-gold drop-shadow-lg"></i>
@@ -126,6 +136,36 @@
         </div>
       </div>
 
+      <!-- Formato del torneo (FR-004/D3: default sugerido por competición, editable) -->
+      <div class="form-group mb-6">
+        <label class="form-label">Formato del torneo</label>
+        <div class="space-y-3 mt-2">
+          <div>
+            <p class="text-xs mb-2" style="color:var(--gray-text)">Fase de grupos</p>
+            <div class="flex gap-3">
+              <button id="btn-formato-grupos-unico" class="mode-btn flex-1" data-valor="unico">Partido único</button>
+              <button id="btn-formato-grupos-ida-vuelta" class="mode-btn flex-1" data-valor="ida_vuelta">Ida y vuelta</button>
+            </div>
+          </div>
+          <div>
+            <p class="text-xs mb-2" style="color:var(--gray-text)">Eliminación directa</p>
+            <div class="flex gap-3">
+              <button id="btn-formato-elim-unico" class="mode-btn flex-1" data-valor="unico">Partido único</button>
+              <button id="btn-formato-elim-ida-vuelta" class="mode-btn flex-1" data-valor="ida_vuelta">Ida y vuelta</button>
+            </div>
+          </div>
+          <div class="card-glass p-3 flex items-center justify-between">
+            <div>
+              <p class="font-medium text-white text-sm">Penales en empate</p>
+              <p class="text-xs" style="color:var(--gray-text)">Si está apagado, un empate en eliminación se resuelve a mano</p>
+            </div>
+            <button id="btn-formato-penales" class="toggle-switch" aria-label="Toggle penales" role="switch" aria-checked="true">
+              <span class="toggle-thumb"></span>
+            </button>
+          </div>
+        </div>
+      </div>
+
       <!-- Lista de jugadores -->
       <div class="form-group mb-6">
         <label class="form-label">Jugadores</label>
@@ -157,7 +197,7 @@
     <section id="screen-equipos" class="screen px-4 pt-6 pb-6">
       <div class="section-header mb-6">
         <h2 class="font-bebas text-3xl text-gold tracking-wider">ASIGNAR EQUIPOS</h2>
-        <p class="text-gray-400 text-sm mt-1">Elige cómo asignar los equipos de FC 26</p>
+        <p id="equipos-subtitulo" class="text-gray-400 text-sm mt-1">Elige cómo asignar los equipos</p>
       </div>
 
       <!-- Modo de asignación -->
@@ -492,19 +532,20 @@
           <input type="number" id="input-goles-visitante" class="score-input" value="0" min="0" max="99" />
         </div>
       </div>
-      <!-- Penales (solo eliminación) -->
+      <!-- Desempate (penales o selección manual, solo eliminación) -->
       <div id="penales-section" class="hidden mb-4">
-        <p class="text-sm text-yellow-400 mb-2">
+        <p id="penales-titulo" class="text-sm text-yellow-400 mb-2">
           <i class="fa-solid fa-triangle-exclamation mr-1"></i>Empate — define por penales:
         </p>
         <div class="flex gap-3">
           <button id="btn-penal-local" class="penal-btn flex-1" data-winner="local">
-            <span id="penal-local-text"></span> gana penales
+            <span id="penal-local-text"></span>
           </button>
           <button id="btn-penal-visitante" class="penal-btn flex-1" data-winner="visitante">
-            <span id="penal-visitante-text"></span> gana penales
+            <span id="penal-visitante-text"></span>
           </button>
         </div>
+        <button id="btn-desempate-alternar" class="hidden text-xs mt-2 underline" style="color:var(--gray-text)"></button>
       </div>
       <button id="btn-guardar-resultado" class="btn-primary w-full">
         <i class="fa-solid fa-floppy-disk mr-2"></i>Guardar resultado
@@ -553,6 +594,8 @@
   <!-- ===== TOAST ===== -->
   <div id="toast" class="toast hidden" role="alert" aria-live="polite"></div>
 
+  <script src="./motor.js"></script>
+  <script src="./competiciones.js"></script>
   <script src="./app.js"></script>
 </body>
 </html>

@@ -1,6 +1,7 @@
 /* ============================================================
-   TORNEO AMIGOS FC 26 — Custom Styles
-   Paleta: Negro #07090f | Rojo #e0182d | Azul #0052c8 | Verde #00a64e | Dorado #c9a84c
+   COPA PANAS — Custom Styles
+   Paleta base (Mundial 2026, vía competiciones.js):
+   Negro #07090f | Rojo #e0182d | Azul #0052c8 | Verde #00a64e | Dorado #c9a84c
 ============================================================ */
 
 /* ── Variables ── */
@@ -346,6 +347,52 @@ body {
   color: var(--blue);
 }
 
+/* ── Selección de competición ──
+   Pantalla de un solo momento (elegir competición) — se centra el bloque
+   verticalmente en vez de anclarlo arriba, para que no quede un vacío
+   grande debajo en pantallas altas o anchas (mismo tratamiento de "hero"
+   que el trofeo de setup, pero ocupando el alto completo disponible). */
+#screen-competicion.active {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: inherit;
+}
+
+.competicion-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 96px;
+  padding: 20px;
+  border-radius: 16px;
+  border: 1.5px solid var(--border);
+  background: rgba(255,255,255,0.04);
+  color: var(--white);
+  cursor: pointer;
+  transition: transform 150ms ease, border-color 150ms ease, background-color 150ms ease;
+}
+
+.competicion-card:hover,
+.competicion-card:focus-visible {
+  border-color: var(--gold);
+  background: rgba(201,168,76,0.08);
+  transform: translateY(-2px);
+}
+
+[data-theme="light"] .competicion-card {
+  background: #ffffff;
+  border-color: rgba(0,0,0,0.08);
+  box-shadow: 0 2px 12px rgba(0,0,0,0.07);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .competicion-card { transition: none; }
+  .competicion-card:hover, .competicion-card:focus-visible { transform: none; }
+}
+
 /* ── Player input row ── */
 .jugador-row {
   display: flex;
@@ -654,7 +701,7 @@ body {
   cursor: pointer;
   transition: all 200ms ease;
   white-space: nowrap;
-  min-height: 36px;
+  min-height: 44px;
   font-family: 'Inter', sans-serif;
 }
 
@@ -684,7 +731,7 @@ body {
   cursor: pointer;
   transition: all 200ms ease;
   white-space: nowrap;
-  min-height: 36px;
+  min-height: 44px;
   font-family: 'Inter', sans-serif;
 }
 
@@ -861,7 +908,9 @@ body {
   font-weight: 700;
   cursor: pointer;
   transition: all 200ms ease;
-  min-height: 36px;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
   font-family: 'Inter', sans-serif;
 }
 
@@ -908,6 +957,17 @@ body {
   cursor: pointer;
   transition: background 200ms ease, border-color 200ms ease;
   flex-shrink: 0;
+}
+
+/* Área de toque real 44x44 sin agrandar el pill visualmente (SC-007) */
+.toggle-switch::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 44px;
+  height: 44px;
+  transform: translate(-50%, -50%);
 }
 
 .toggle-switch[aria-checked="true"] {
@@ -1310,4 +1370,100 @@ select option {
 @keyframes toastIn {
   from { transform: translateX(-50%) translateY(10px); opacity: 0; }
   to { transform: translateX(-50%) translateY(0); opacity: 1; }
+}
+
+/* ── Responsive: tablet/desktop (FR-010a, research.md §6) ──────
+   Mobile (<640px) es el default de todo el archivo, sin prefijo — no se
+   toca nada de lo anterior. Estos breakpoints solo AGREGAN comportamiento
+   desde tablet/desktop, nunca degradan mobile. */
+
+/* Tablet (≥640px): más aire, sin cambio estructural de navegación todavía */
+@media (min-width: 640px) {
+  #app-main { max-width: 640px; margin: 0 auto; }
+  .screen { padding-left: 24px; padding-right: 24px; }
+}
+
+/* Desktop (≥1024px): el bottom-nav fijo estilo app deja de tener sentido
+   (CLAUDE.md: "la navegación inferior fija de mobile no tiene por qué
+   mantenerse igual en pantallas anchas") — se convierte en una barra
+   secundaria horizontal debajo del header, en vez de flotar abajo. */
+@media (min-width: 1024px) {
+  body { padding-top: calc(60px + 52px + var(--safe-top)); }
+
+  #app-main {
+    max-width: 1040px;
+    margin: 0 auto;
+    padding-left: 32px;
+    padding-right: 32px;
+  }
+
+  .screen { min-height: calc(100dvh - 190px); padding-left: 0; padding-right: 0; }
+
+  .bottom-nav {
+    position: fixed;
+    top: calc(60px + var(--safe-top));
+    bottom: auto;
+    left: 0;
+    right: 0;
+    height: 52px;
+    justify-content: center;
+    gap: 8px;
+    border-top: none;
+    border-bottom: 1px solid var(--border);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.35);
+    padding-bottom: 0;
+  }
+
+  [data-theme="light"] .bottom-nav { border-bottom-color: rgba(0,0,0,0.1); }
+
+  .nav-tab {
+    flex: 0 0 auto;
+    flex-direction: row;
+    gap: 8px;
+    padding: 0 22px;
+    min-height: 52px;
+    font-size: 13px;
+  }
+
+  .nav-tab i { font-size: 16px; }
+  .nav-tab.active i { transform: none; }
+
+  /* Fase de grupos: tabla de posiciones y partidos lado a lado en vez de
+     apilados — misma info, más contexto simultáneo (CLAUDE.md). */
+  #grupos-content {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    align-items: start;
+    gap: 16px;
+  }
+
+  /* Resumen de grupos en el dashboard: grilla en vez de columna única */
+  #dashboard-grupos {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 12px;
+    align-items: start;
+  }
+  #dashboard-grupos h3 { grid-column: 1 / -1; margin-bottom: 0; }
+
+  /* Bracket: partidos de una ronda en fila en vez de columna apilada */
+  .bracket-round {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+  .bracket-match { min-width: 260px; flex: 0 1 300px; }
+}
+
+/* ── Movimiento reducido (FR-011) ──────────────────────────────
+   Recorta toda animación/transición decorativa a lo casi-instantáneo
+   y detiene los loops infinitos (bombo girando, glow del campeón).
+   El feedback funcional (aparecer/desaparecer, cambios de color de
+   estado) se mantiene, solo pierde el movimiento intermedio. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
 }

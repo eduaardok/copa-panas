@@ -1,6 +1,8 @@
 /* ============================================================
-   TORNEO AMIGOS FC 26 — app.js
-   Lógica completa del torneo. Sin dependencias externas.
+   COPA PANAS — app.js
+   UI, estado, router y persistencia. Consume motor.js
+   (cálculo puro) y competiciones.js (configuración por
+   competición) — no contiene lógica de cálculo propia.
    Persistencia: localStorage (clave "torneo_data")
 ============================================================ */
 
@@ -9,20 +11,7 @@
 // ── Constantes ──────────────────────────────────────────────
 
 const CLAVE_LS = 'torneo_data';
-
-const EQUIPOS_POOL = [
-  'Argentina', 'Francia', 'Brasil', 'Inglaterra', 'Portugal',
-  'España', 'Alemania', 'Países Bajos', 'Bélgica', 'Italia',
-  'Uruguay', 'Colombia', 'Croacia', 'Marruecos', 'Estados Unidos'
-];
-
-const NOMBRES_RONDAS = {
-  2: 'Final',
-  4: 'Semifinales',
-  8: 'Cuartos de final',
-  16: 'Octavos de final',
-  32: 'Dieciseisavos'
-};
+const VERSION_ESQUEMA = 2;
 
 const FASES_TEXTO = {
   setup: 'Configuración inicial',
@@ -51,16 +40,30 @@ let rondaActiva = 0;
 
 function crearEstadoVacio() {
   return {
+    version: VERSION_ESQUEMA,
+    competicion: null,    // id de COMPETICIONES (ej. 'mundial'), fijo una vez creado el torneo
+    configFormato: null,  // { grupos, eliminacion, penales } — inicializado desde formatoDefault
     meta: { nombre: '', logo: '', tema: 'dark' },
     jugadores: [],        // { id, nombre, equipo }
     grupos: [],           // { id, nombre, jugadoresIds: [] }
-    partidos_grupos: [],  // { id, grupoId, localId, visitanteId, golesLocal, golesVisitante, jugado }
+    partidos_grupos: [],  // { id, grupoId, localId, visitanteId, golesLocal, golesVisitante, jugado, vuelta }
     clasificados: [],     // [jugadorId, ...]
     cruces: [],           // { id, ronda, posicion, localId, visitanteId }
-    partidos_eliminacion: [], // { id, cruceId, ronda, localId, visitanteId, golesLocal, golesVisitante, ganadorId, penalGanadorId, jugado }
+    partidos_eliminacion: [], // { id, cruceId, ronda, leg, localId, visitanteId, golesLocal, golesVisitante, ganadorId, desempateGanadorId, desempateTipo, jugado }
     campeon: null,        // jugadorId
     fase: 'setup'
   };
+}
+
+// ── Migración de esquema previo (sin version, ver research.md §3) ──
+
+function migrarEstado(datos) {
+  if (datos && datos.version === undefined) {
+    datos.competicion = 'mundial';
+    datos.configFormato = { grupos: 'unico', eliminacion: 'unico', penales: true };
+    datos.version = VERSION_ESQUEMA;
+  }
+  return datos;
 }
 
 // ── Persistencia ─────────────────────────────────────────────
@@ -77,7 +80,7 @@ function cargar() {
   try {
     const raw = localStorage.getItem(CLAVE_LS);
     if (!raw) return false;
-    const datos = JSON.parse(raw);
+    const datos = migrarEstado(JSON.parse(raw));
     // Fusionar con estructura vacía para compatibilidad
     estado = Object.assign(crearEstadoVacio(), datos);
     estado.meta = Object.assign({ nombre: '', logo: '', tema: 'dark' }, datos.meta);
@@ -93,11 +96,6 @@ function limpiarStorage() {
   } catch (e) { /* ignorar */ }
   estado = crearEstadoVacio();
 }
-
-// ── IDs únicos ───────────────────────────────────────────────
-
-let _idCounter = Date.now();
-function nuevoId() { return `id_${_idCounter++}`; }
 
 // ── Toast ────────────────────────────────────────────────────
 
@@ -168,7 +166,7 @@ function actualizarHeader() {
   const logoWrap = document.getElementById('header-logo-wrap');
   const logoImg = document.getElementById('header-logo');
 
-  if (titulo) titulo.textContent = estado.meta.nombre || 'TORNEO FC 26';
+  if (titulo) titulo.textContent = estado.meta.nombre || (estado.competicion ? COMPETICIONES[estado.competicion].textos.tituloTorneoDefault : 'COPA PANAS');
   if (fase) fase.textContent = FASES_TEXTO[estado.fase] || '';
 
   if (logoImg && estado.meta.logo) {
@@ -186,6 +184,8 @@ function actualizarHeader() {
 }
 
 function irAFaseCorrecta() {
+  // Con torneo activo, la pantalla de selección de competición nunca es
+  // alcanzable (D1/FR-002) — este switch solo se invoca cuando hayDatos===true.
   switch (estado.fase) {
     case 'setup':      mostrarPantalla('setup'); break;
     case 'equipos':    mostrarPantalla('equipos'); break;
@@ -196,6 +196,37 @@ function irAFaseCorrecta() {
     case 'finalizado':  mostrarPantalla('dashboard'); renderizarDashboard(); break;
     default:           mostrarPantalla('setup'); break;
   }
+}
+
+// ── PANTALLA -1 — SELECCIÓN DE COMPETICIÓN (D1/FR-001) ───────
+
+function inicializarSeleccionCompeticion() {
+  const container = document.getElementById('lista-competiciones');
+  if (!container) return;
+  container.innerHTML = '';
+  Object.values(COMPETICIONES).forEach(comp => {
+    const btn = document.createElement('button');
+    btn.className = 'competicion-card';
+    btn.dataset.competicionId = comp.id;
+    btn.innerHTML = `
+      <i class="fa-solid fa-trophy text-3xl text-gold mb-2"></i>
+      <span class="font-bebas text-2xl tracking-wider">${escHtml(comp.nombre)}</span>
+    `;
+    btn.addEventListener('click', () => elegirCompeticion(comp.id));
+    container.appendChild(btn);
+  });
+}
+
+function elegirCompeticion(competicionId) {
+  const comp = COMPETICIONES[competicionId];
+  if (!comp) return;
+  estado = crearEstadoVacio();
+  estado.competicion = competicionId;
+  estado.configFormato = { ...comp.formatoDefault };
+  aplicarPaletaCompeticion(competicionId);
+  guardar();
+  mostrarPantalla('setup');
+  inicializarSetup();
 }
 
 // ── Modal genérico de confirmación ───────────────────────────
@@ -209,6 +240,13 @@ function mostrarConfirm(titulo, msg, callback) {
 }
 
 // ── Utilidades ───────────────────────────────────────────────
+
+// FR-011: con movimiento reducido, los intervalos de las animaciones de
+// sorteo casi no esperan entre pasos (el feedback — qué le tocó a cada
+// jugador — se sigue viendo, solo sin el efecto de revelado progresivo).
+function movimientoReducido() {
+  return window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+}
 
 function mezclar(arr) {
   // Fisher-Yates
@@ -241,7 +279,18 @@ function inicializarSetup() {
     mostrarPreviewLogo(estado.meta.logo);
   }
 
+  seleccionarFormatoUI('grupos', estado.configFormato.grupos);
+  seleccionarFormatoUI('elim', estado.configFormato.eliminacion);
+  document.getElementById('btn-formato-penales').setAttribute('aria-checked', estado.configFormato.penales ? 'true' : 'false');
+
   renderizarListaJugadores();
+}
+
+function seleccionarFormatoUI(prefijo, valor) {
+  const idSufijo = valor === 'ida_vuelta' ? 'ida-vuelta' : 'unico';
+  ['unico', 'ida-vuelta'].forEach(v => {
+    document.getElementById(`btn-formato-${prefijo}-${v}`)?.classList.toggle('active', v === idSufijo);
+  });
 }
 
 function renderizarListaJugadores() {
@@ -351,6 +400,13 @@ function confirmarJugadores() {
     equipo: estado.jugadores[i]?.equipo || ''
   }));
 
+  // FR-004/D3: el formato queda fijo para este torneo recién en este punto
+  estado.configFormato = {
+    grupos: document.getElementById('btn-formato-grupos-ida-vuelta').classList.contains('active') ? 'ida_vuelta' : 'unico',
+    eliminacion: document.getElementById('btn-formato-elim-ida-vuelta').classList.contains('active') ? 'ida_vuelta' : 'unico',
+    penales: document.getElementById('btn-formato-penales').getAttribute('aria-checked') === 'true'
+  };
+
   estado.fase = 'equipos';
   guardar();
   inicializarEquipos();
@@ -369,13 +425,15 @@ function inicializarEquipos() {
   // No limpiar equipos ya sorteados si volvemos atrás con datos
   document.getElementById('btn-modo-aleatorio').classList.add('active');
   document.getElementById('btn-modo-manual').classList.remove('active');
+  const subtitulo = document.getElementById('equipos-subtitulo');
+  if (subtitulo) subtitulo.textContent = textoCompeticion(estado.competicion, 'textoAsignarEquipos');
   renderizarAsignacionEquipos();
 }
 
 function renderizarAsignacionEquipos() {
   const container = document.getElementById('lista-asignacion-equipos');
   container.innerHTML = '';
-  const todosEquipos = [...EQUIPOS_POOL, ..._equiposExtra];
+  const todosEquipos = [...COMPETICIONES[estado.competicion].poolEquipos, ..._equiposExtra];
   const necesitaExtra = estado.jugadores.length > todosEquipos.length;
 
   document.getElementById('equipos-extra-section').classList.toggle('hidden', !necesitaExtra);
@@ -421,7 +479,7 @@ function renderizarAsignacionEquipos() {
 let _equiposTempSorteados = null;
 
 function mostrarAnimacionSorteoEquipos() {
-  const todosEquipos = [...EQUIPOS_POOL, ..._equiposExtra];
+  const todosEquipos = [...COMPETICIONES[estado.competicion].poolEquipos, ..._equiposExtra];
   const equiposMezclados = mezclar(todosEquipos).slice(0, estado.jugadores.length);
   _equiposTempSorteados = equiposMezclados;
 
@@ -438,8 +496,8 @@ function mostrarAnimacionSorteoEquipos() {
   btnRepetir.classList.add('hidden');
   modal.classList.remove('hidden');
   bombo.classList.add('spinning');
-  msg.textContent = 'SORTEANDO EQUIPOS';
-  sub.textContent = 'Asignando equipos de FC 26...';
+  msg.textContent = textoCompeticion(estado.competicion, 'tituloSorteoEquipos');
+  sub.textContent = textoCompeticion(estado.competicion, 'subtituloSorteoEquipos');
 
   let i = 0;
   const intervalo = setInterval(() => {
@@ -474,11 +532,11 @@ function mostrarAnimacionSorteoEquipos() {
     resultado.appendChild(item);
     resultado.scrollTop = resultado.scrollHeight;
     i++;
-  }, 180);
+  }, movimientoReducido() ? 0 : 180);
 }
 
 function confirmarEquipos() {
-  const todosEquipos = [...EQUIPOS_POOL, ..._equiposExtra];
+  const todosEquipos = [...COMPETICIONES[estado.competicion].poolEquipos, ..._equiposExtra];
 
   if (_modoEquipos === 'aleatorio') {
     // Verificar que se realizó el sorteo
@@ -673,12 +731,12 @@ function mostrarModalSorteo(grupos) {
     resultado.appendChild(item);
     resultado.scrollTop = resultado.scrollHeight;
     i++;
-  }, 200);
+  }, movimientoReducido() ? 0 : 200);
 }
 
 function confirmarSorteo(grupos) {
   estado.grupos = grupos;
-  estado.partidos_grupos = generarCalendarioGrupos();
+  estado.partidos_grupos = generarCalendarioGrupos(estado.grupos, estado.configFormato.grupos);
   estado.fase = 'fase_grupos';
   guardar();
   document.getElementById('modal-sorteo').classList.add('hidden');
@@ -709,7 +767,7 @@ function aplicarGruposManual() {
   }
 
   estado.grupos = grupos;
-  estado.partidos_grupos = generarCalendarioGrupos();
+  estado.partidos_grupos = generarCalendarioGrupos(estado.grupos, estado.configFormato.grupos);
   estado.fase = 'fase_grupos';
   guardar();
   mostrarPantalla('dashboard');
@@ -795,106 +853,22 @@ function configurarDragDrop(container) {
   });
 }
 
-// ── GENERACIÓN DE CALENDARIO ─────────────────────────────────
+// ── CÁLCULO DE POSICIONES (delega en motor.js) ───────────────
 
-function generarCalendarioGrupos() {
-  const partidos = [];
-  estado.grupos.forEach(grupo => {
-    const jugs = grupo.jugadoresIds;
-    for (let i = 0; i < jugs.length; i++) {
-      for (let j = i + 1; j < jugs.length; j++) {
-        partidos.push({
-          id: nuevoId(),
-          grupoId: grupo.id,
-          localId: jugs[i],
-          visitanteId: jugs[j],
-          golesLocal: null,
-          golesVisitante: null,
-          jugado: false
-        });
-      }
-    }
-  });
-  return partidos;
-}
-
-// ── CÁLCULO DE POSICIONES ────────────────────────────────────
-
-function calcularPosiciones(grupoId) {
+function posicionesDeGrupo(grupoId) {
   const grupo = grupoPorId(grupoId);
   if (!grupo) return [];
-
-  const stats = {};
-  grupo.jugadoresIds.forEach(jid => {
-    stats[jid] = { id: jid, pj: 0, pg: 0, pe: 0, pp: 0, gf: 0, gc: 0, dg: 0, pts: 0 };
-  });
-
-  const partidos = estado.partidos_grupos.filter(p => p.grupoId === grupoId && p.jugado);
-  partidos.forEach(p => {
-    const gl = p.golesLocal;
-    const gv = p.golesVisitante;
-    stats[p.localId].pj++;
-    stats[p.visitanteId].pj++;
-    stats[p.localId].gf += gl;
-    stats[p.localId].gc += gv;
-    stats[p.visitanteId].gf += gv;
-    stats[p.visitanteId].gc += gl;
-    if (gl > gv) {
-      stats[p.localId].pg++;
-      stats[p.localId].pts += 3;
-      stats[p.visitanteId].pp++;
-    } else if (gl < gv) {
-      stats[p.visitanteId].pg++;
-      stats[p.visitanteId].pts += 3;
-      stats[p.localId].pp++;
-    } else {
-      stats[p.localId].pe++;
-      stats[p.localId].pts++;
-      stats[p.visitanteId].pe++;
-      stats[p.visitanteId].pts++;
-    }
-  });
-
-  Object.values(stats).forEach(s => { s.dg = s.gf - s.gc; });
-
-  const lista = Object.values(stats);
-  lista.sort((a, b) => {
-    if (b.pts !== a.pts) return b.pts - a.pts;
-    if (b.dg !== a.dg) return b.dg - a.dg;
-    if (b.gf !== a.gf) return b.gf - a.gf;
-    // Resultado directo
-    const directos = partidos.filter(p =>
-      (p.localId === a.id && p.visitanteId === b.id) ||
-      (p.localId === b.id && p.visitanteId === a.id)
-    );
-    if (directos.length > 0) {
-      const d = directos[0];
-      const ptsa = d.localId === a.id ? (d.golesLocal > d.golesVisitante ? 3 : d.golesLocal === d.golesVisitante ? 1 : 0) : (d.golesVisitante > d.golesLocal ? 3 : d.golesVisitante === d.golesLocal ? 1 : 0);
-      const ptsb = 3 - ptsa === 3 ? 0 : 3 - ptsa;
-      if (ptsa !== ptsb) return ptsb - ptsa;
-    }
-    return 0;
-  });
-  return lista;
+  const partidosGrupo = estado.partidos_grupos.filter(p => p.grupoId === grupoId);
+  return calcularPosiciones(partidosGrupo, grupo.jugadoresIds);
 }
 
-function calcularClasificadosGeneral() {
-  // Todos los jugadores con sus stats de grupo, ordenados
-  const todas = [];
-  estado.grupos.forEach(g => {
-    const pos = calcularPosiciones(g.id);
-    pos.forEach((s, rank) => {
-      todas.push({ ...s, grupoId: g.id, grupoNombre: g.nombre, rank });
-    });
-  });
-  // Ordenar: por rank primero, luego pts, dg, gf
-  todas.sort((a, b) => {
-    if (a.rank !== b.rank) return a.rank - b.rank;
-    if (b.pts !== a.pts) return b.pts - a.pts;
-    if (b.dg !== a.dg) return b.dg - a.dg;
-    return b.gf - a.gf;
-  });
-  return todas;
+function clasificadosGeneral() {
+  const gruposConPosiciones = estado.grupos.map(g => ({
+    grupoId: g.id,
+    grupoNombre: g.nombre,
+    posiciones: posicionesDeGrupo(g.id)
+  }));
+  return calcularClasificadosGeneral(gruposConPosiciones);
 }
 
 // ── PANTALLA 2 — FASE DE GRUPOS ──────────────────────────────
@@ -921,7 +895,7 @@ function renderizarFaseGrupos() {
   if (!grupo) return;
 
   // Tabla de posiciones
-  const posiciones = calcularPosiciones(grupo.id);
+  const posiciones = posicionesDeGrupo(grupo.id);
   const tablaHTML = `
     <div class="card-glass mb-4 overflow-hidden">
       <div class="px-4 py-3 border-b border-white/8">
@@ -956,15 +930,24 @@ function renderizarFaseGrupos() {
   `;
   contentEl.insertAdjacentHTML('beforeend', tablaHTML);
 
-  // Partidos del grupo
+  // Partidos del grupo (separados en Ida/Vuelta cuando el formato lo requiere)
   const partidos = estado.partidos_grupos.filter(p => p.grupoId === grupo.id);
+  const idaVueltaGrupos = estado.configFormato.grupos === 'ida_vuelta';
+  const listaPartidosHTML = idaVueltaGrupos
+    ? `
+      <p class="text-xs font-bold text-gray-400 uppercase tracking-wider px-1 pt-2">Ida</p>
+      ${partidos.filter(p => !p.vuelta).map(p => renderizarMatchCard(p, 'grupo')).join('')}
+      <p class="text-xs font-bold text-gray-400 uppercase tracking-wider px-1 pt-3">Vuelta</p>
+      ${partidos.filter(p => p.vuelta).map(p => renderizarMatchCard(p, 'grupo')).join('')}
+    `
+    : partidos.map(p => renderizarMatchCard(p, 'grupo')).join('');
   const partidosHTML = `
     <div class="card-glass overflow-hidden">
       <div class="px-4 py-3 border-b border-white/8">
         <h3 class="font-bebas text-lg text-gold tracking-wider">${escHtml(grupo.nombre)} — Partidos</h3>
       </div>
       <div class="p-3 space-y-2">
-        ${partidos.map(p => renderizarMatchCard(p, 'grupo')).join('')}
+        ${listaPartidosHTML}
       </div>
     </div>
   `;
@@ -1040,6 +1023,88 @@ function verificarFinFaseGrupos() {
 
 // ── MODAL RESULTADO ──────────────────────────────────────────
 
+// Un cruce a ida/vuelta solo puede definirse por penales/manual una vez
+// jugado el leg 2 (recién ahí se conoce el marcador agregado).
+function esUltimoLeg(partido) {
+  if (estado.configFormato.eliminacion !== 'ida_vuelta') return true;
+  return (partido.leg || 1) === 2;
+}
+
+function otroLegDeCruce(partido) {
+  return estado.partidos_eliminacion.find(p => p.cruceId === partido.cruceId && p.id !== partido.id) || null;
+}
+
+// Agregado prospectivo (A = partido.localId, B = partido.visitanteId) usando
+// el otro leg ya jugado (si existe) + los valores que el usuario está por guardar.
+function calcularAgregadoProspectivo(partido, glInput, gvInput) {
+  let golesA = glInput;
+  let golesB = gvInput;
+  const otro = otroLegDeCruce(partido);
+  if (otro && otro.jugado) {
+    if (otro.localId === partido.localId) {
+      golesA += otro.golesLocal;
+      golesB += otro.golesVisitante;
+    } else {
+      golesA += otro.golesVisitante;
+      golesB += otro.golesLocal;
+    }
+  }
+  return { golesA, golesB };
+}
+
+// FR-004a: con configFormato.penales === true, el organizador puede igual
+// elegir definir el desempate a mano (lesión, acuerdo, etc.) en vez de
+// jugar penales. Este flag de UI (no de estado del torneo) alterna qué
+// modo se muestra dentro de #penales-section; se resetea en cada apertura
+// del modal (abrirModalResultado).
+let _desempateModoManual = false;
+
+function actualizarSeccionDesempate() {
+  const penaSection = document.getElementById('penales-section');
+  const alternarBtn = document.getElementById('btn-desempate-alternar');
+  if (!partidoEditando || partidoEditando.tipo !== 'eliminacion') {
+    penaSection.classList.add('hidden');
+    return;
+  }
+  const partido = partidoEditando.partido;
+  const gl = parseInt(document.getElementById('input-goles-local').value) || 0;
+  const gv = parseInt(document.getElementById('input-goles-visitante').value) || 0;
+
+  if (!esUltimoLeg(partido)) {
+    penaSection.classList.add('hidden');
+    return;
+  }
+  const { golesA, golesB } = calcularAgregadoProspectivo(partido, gl, gv);
+  const hayEmpate = golesA === golesB;
+  penaSection.classList.toggle('hidden', !hayEmpate);
+  if (!hayEmpate) return;
+
+  const local = jugadorPorId(partido.localId);
+  const visitante = jugadorPorId(partido.visitanteId);
+  // Con penales:true, el modo manual es una alternativa explícita, no el
+  // único camino (FR-004a) — con penales:false, manual es el único modo.
+  const usarPenales = estado.configFormato.penales && !_desempateModoManual;
+
+  document.getElementById('penales-titulo').textContent = usarPenales
+    ? 'Empate — define por penales:'
+    : 'Empate — elegí quién avanza:';
+  document.getElementById('penal-local-text').textContent = usarPenales
+    ? `${local?.nombre || '?'} gana penales`
+    : `Avanza ${local?.nombre || '?'}`;
+  document.getElementById('penal-visitante-text').textContent = usarPenales
+    ? `${visitante?.nombre || '?'} gana penales`
+    : `Avanza ${visitante?.nombre || '?'}`;
+
+  if (estado.configFormato.penales) {
+    alternarBtn.classList.remove('hidden');
+    alternarBtn.textContent = usarPenales
+      ? '¿No van a jugar penales? Definir manualmente quién avanza'
+      : 'Volver a definir por penales';
+  } else {
+    alternarBtn.classList.add('hidden');
+  }
+}
+
 function abrirModalResultado(partidoId, tipo) {
   const partido = tipo === 'grupo'
     ? estado.partidos_grupos.find(p => p.id === partidoId)
@@ -1051,28 +1116,22 @@ function abrirModalResultado(partidoId, tipo) {
   const local = jugadorPorId(partido.localId);
   const visitante = jugadorPorId(partido.visitanteId);
 
-  document.getElementById('resultado-local-nombre').textContent = `${local?.nombre || '?'} (${local?.equipo || ''})`;
+  const sufijoLeg = tipo === 'eliminacion' && estado.configFormato.eliminacion === 'ida_vuelta'
+    ? ` (${partido.leg === 2 ? 'vuelta' : 'ida'})` : '';
+  document.getElementById('resultado-local-nombre').textContent = `${local?.nombre || '?'} (${local?.equipo || ''})${sufijoLeg}`;
   document.getElementById('resultado-visitante-nombre').textContent = `${visitante?.nombre || '?'} (${visitante?.equipo || ''})`;
   document.getElementById('input-goles-local').value = partido.jugado ? partido.golesLocal : 0;
   document.getElementById('input-goles-visitante').value = partido.jugado ? partido.golesVisitante : 0;
 
-  const penaSection = document.getElementById('penales-section');
-  penaSection.classList.toggle('hidden', tipo !== 'eliminacion');
-
   if (tipo === 'eliminacion') {
-    document.getElementById('penal-local-text').textContent = local?.nombre || '?';
-    document.getElementById('penal-visitante-text').textContent = visitante?.nombre || '?';
-    // Resetear penales
     document.querySelectorAll('.penal-btn').forEach(b => b.classList.remove('active'));
-    if (partido.penalGanadorId) {
-      const winner = partido.penalGanadorId === partido.localId ? 'local' : 'visitante';
+    _desempateModoManual = partido.desempateTipo === 'manual';
+    if (partido.desempateGanadorId) {
+      const winner = partido.desempateGanadorId === partido.localId ? 'local' : 'visitante';
       document.querySelector(`.penal-btn[data-winner="${winner}"]`)?.classList.add('active');
     }
-    // Mostrar/ocultar penales según resultado actual
-    const gl = parseInt(document.getElementById('input-goles-local').value) || 0;
-    const gv = parseInt(document.getElementById('input-goles-visitante').value) || 0;
-    penaSection.classList.toggle('hidden', gl !== gv);
   }
+  actualizarSeccionDesempate();
 
   document.getElementById('modal-resultado').classList.remove('hidden');
   setTimeout(() => document.getElementById('input-goles-local').select(), 100);
@@ -1100,25 +1159,31 @@ function guardarResultado() {
     renderizarDashboard();
   } else {
     // Eliminación
-    if (gl === gv) {
+    const decisivo = esUltimoLeg(partido);
+    const agregado = calcularAgregadoProspectivo(partido, gl, gv);
+    const hayEmpateFinal = decisivo && agregado.golesA === agregado.golesB;
+
+    if (hayEmpateFinal) {
       const penalActivo = document.querySelector('.penal-btn.active');
       if (!penalActivo) {
-        mostrarToast('En empate debes definir quién gana los penales', 'error');
+        mostrarToast(estado.configFormato.penales
+          ? 'En empate debes definir quién gana los penales'
+          : 'En empate debes elegir quién avanza', 'error');
         return;
       }
       const winner = penalActivo.dataset.winner;
-      partido.penalGanadorId = winner === 'local' ? partido.localId : partido.visitanteId;
-      partido.ganadorId = partido.penalGanadorId;
+      partido.desempateGanadorId = winner === 'local' ? partido.localId : partido.visitanteId;
+      partido.desempateTipo = (estado.configFormato.penales && !_desempateModoManual) ? 'penales' : 'manual';
     } else {
-      partido.ganadorId = gl > gv ? partido.localId : partido.visitanteId;
-      partido.penalGanadorId = null;
+      partido.desempateGanadorId = null;
+      partido.desempateTipo = null;
     }
     partido.golesLocal = gl;
     partido.golesVisitante = gv;
     partido.jugado = true;
     guardar();
     cerrarModalResultado();
-    avanzarEliminacion();
+    procesarAvanceEliminacion(partido.cruceId);
     renderizarEliminacion();
     renderizarDashboard();
   }
@@ -1140,7 +1205,7 @@ function renderizarClasificados() {
   if (estado.clasificados.length > 0 && _seleccionados.size === 0) {
     _seleccionados = new Set(estado.clasificados);
   }
-  const general = calcularClasificadosGeneral();
+  const general = clasificadosGeneral();
   const tablaEl = document.getElementById('tabla-clasificados');
   tablaEl.innerHTML = '';
 
@@ -1189,7 +1254,7 @@ function toggleClasificado(jugadorId) {
 }
 
 function seleccionarTopN(n) {
-  const general = calcularClasificadosGeneral();
+  const general = clasificadosGeneral();
   _seleccionados = new Set(general.slice(0, n).map(s => s.id));
   // Refrescar checkmarks
   document.querySelectorAll('.clasificado-row').forEach(row => {
@@ -1245,7 +1310,7 @@ function renderizarCruces() {
   const numCruces = Math.floor(selArr.length / 2);
 
   // Auto-proponer cruces: 1v2, 3v4...
-  const general = calcularClasificadosGeneral();
+  const general = clasificadosGeneral();
   const ordenados = general.filter(s => _seleccionados.has(s.id));
 
   for (let c = 0; c < numCruces; c++) {
@@ -1304,7 +1369,7 @@ function confirmarClasificados() {
   document.getElementById('cruces-validation').classList.add('hidden');
   estado.clasificados = usados;
   estado.cruces = cruces;
-  estado.partidos_eliminacion = generarPartidosEliminacion(cruces, 0);
+  estado.partidos_eliminacion = generarPartidosEliminacion(cruces, 0, estado.configFormato.eliminacion);
   estado.fase = 'eliminacion';
   guardar();
   mostrarPantalla('eliminacion');
@@ -1312,35 +1377,36 @@ function confirmarClasificados() {
   mostrarToast('Fase eliminatoria iniciada', 'success');
 }
 
-// ── PANTALLA 4 — ELIMINACIÓN DIRECTA ─────────────────────────
+// ── PANTALLA 4 — ELIMINACIÓN DIRECTA (orquesta motor.js) ─────
 
-function generarPartidosEliminacion(cruces, ronda) {
-  return cruces.map(c => ({
-    id: nuevoId(),
-    cruceId: c.id,
-    ronda,
-    localId: c.localId,
-    visitanteId: c.visitanteId,
-    golesLocal: null,
-    golesVisitante: null,
-    ganadorId: null,
-    penalGanadorId: null,
-    jugado: false
-  }));
+function legsDeCruce(cruceId) {
+  return estado.partidos_eliminacion.filter(p => p.cruceId === cruceId);
 }
 
-function avanzarEliminacion() {
+/**
+ * Se llama justo después de guardar el resultado de un partido de
+ * eliminación. Resuelve el cruce de ese partido (si ya están todos sus legs
+ * jugados) y, si con eso se completa toda la ronda, genera la siguiente
+ * ronda o declara campeón.
+ */
+function procesarAvanceEliminacion(cruceId) {
+  const legs = legsDeCruce(cruceId);
+  const resultadoCruce = resolverCruce(legs, estado.configFormato);
+  if (resultadoCruce.resuelto) {
+    const ultimoLeg = legs.slice().sort((a, b) => (a.leg || 1) - (b.leg || 1)).pop();
+    ultimoLeg.ganadorId = resultadoCruce.ganadorId;
+    guardar();
+  }
+  // El cruce puede seguir pendiente de penales/selección manual — eso ya
+  // quedó reflejado en la UI del modal (ver guardarResultado).
+
   const rondaActual = Math.max(...estado.partidos_eliminacion.map(p => p.ronda), 0);
   const partidosRonda = estado.partidos_eliminacion.filter(p => p.ronda === rondaActual);
-  const todosJugados = partidosRonda.every(p => p.jugado);
+  const avance = avanzarEliminacion(partidosRonda);
+  if (!avance.completo) return;
 
-  if (!todosJugados) return;
-
-  // Si quedan 2 partidos → generar semifinales, si 1 → es la final, termina
-  const ganadores = partidosRonda.map(p => p.ganadorId).filter(Boolean);
-
+  const ganadores = avance.ganadoresIds;
   if (ganadores.length === 1) {
-    // Campeón
     estado.campeon = ganadores[0];
     estado.fase = 'finalizado';
     guardar();
@@ -1348,26 +1414,16 @@ function avanzarEliminacion() {
     return;
   }
 
-  // Generar nueva ronda
-  const nuevosPartidos = [];
+  // Generar la siguiente ronda con cruces sintéticos entre ganadores consecutivos
+  const nuevosCruces = [];
   for (let i = 0; i < ganadores.length; i += 2) {
     if (ganadores[i + 1]) {
-      nuevosPartidos.push({
-        id: nuevoId(),
-        cruceId: null,
-        ronda: rondaActual + 1,
-        localId: ganadores[i],
-        visitanteId: ganadores[i + 1],
-        golesLocal: null,
-        golesVisitante: null,
-        ganadorId: null,
-        penalGanadorId: null,
-        jugado: false
-      });
+      nuevosCruces.push({ id: nuevoId(), localId: ganadores[i], visitanteId: ganadores[i + 1] });
     }
   }
 
-  if (nuevosPartidos.length > 0) {
+  if (nuevosCruces.length > 0) {
+    const nuevosPartidos = generarPartidosEliminacion(nuevosCruces, rondaActual + 1, estado.configFormato.eliminacion);
     estado.partidos_eliminacion.push(...nuevosPartidos);
     rondaActiva = rondaActual + 1;
     guardar();
@@ -1390,7 +1446,7 @@ function renderizarEliminacion() {
 
   rondas.forEach(ronda => {
     const n = Math.pow(2, rondas.length - ronda);
-    const nombreRonda = NOMBRES_RONDAS[n] || `Ronda ${ronda + 1}`;
+    const nombreRonda = nombreDeRonda(n) || `Ronda ${ronda + 1}`;
     const tab = document.createElement('button');
     tab.className = `ronda-tab ${ronda === rondaActiva ? 'active' : ''}`;
     tab.textContent = nombreRonda;
@@ -1400,12 +1456,14 @@ function renderizarEliminacion() {
 
   const partidosRonda = estado.partidos_eliminacion.filter(p => p.ronda === rondaActiva);
   const n = Math.pow(2, rondas.length - rondaActiva);
-  const nombreRonda = NOMBRES_RONDAS[n] || `Ronda ${rondaActiva + 1}`;
+  const nombreRonda = nombreDeRonda(n) || `Ronda ${rondaActiva + 1}`;
 
   container.innerHTML = `<p class="bracket-phase-label">${escHtml(nombreRonda)}</p>`;
 
   const roundDiv = document.createElement('div');
   roundDiv.className = 'bracket-round';
+
+  const idaVuelta = estado.configFormato.eliminacion === 'ida_vuelta';
 
   partidosRonda.forEach(p => {
     const local = jugadorPorId(p.localId);
@@ -1413,11 +1471,24 @@ function renderizarEliminacion() {
     const localGanador = p.jugado && p.ganadorId === p.localId;
     const visitanteGanador = p.jugado && p.ganadorId === p.visitanteId;
 
+    const legLabel = idaVuelta ? `<div class="text-xs text-center text-gray-400 mb-1">${p.leg === 2 ? 'VUELTA' : 'IDA'}</div>` : '';
+
+    // Marcador agregado (solo en el leg 2, cuando ya se puede calcular)
+    let agregadoHTML = '';
+    if (idaVuelta && p.leg === 2) {
+      const otro = otroLegDeCruce(p);
+      if (otro && otro.jugado && p.jugado) {
+        const { golesA, golesB } = calcularAgregadoProspectivo(p, p.golesLocal, p.golesVisitante);
+        agregadoHTML = `<div class="text-xs text-center text-gray-400 py-1 border-t border-white/8">Agregado: ${golesA}-${golesB}</div>`;
+      }
+    }
+
     const matchEl = document.createElement('div');
     matchEl.className = `bracket-match ${p.jugado ? 'completed' : ''}`;
     matchEl.dataset.partidoId = p.id;
     matchEl.dataset.tipo = 'eliminacion';
     matchEl.innerHTML = `
+      ${legLabel}
       <div class="bracket-team ${localGanador ? 'winner' : ''}">
         <div class="bracket-team-name">${escHtml(local?.nombre || 'Por definir')}<div class="text-xs text-gray-400 font-normal">${escHtml(local?.equipo || '')}</div></div>
         <div class="bracket-team-score">${p.jugado ? p.golesLocal : '—'}</div>
@@ -1426,7 +1497,8 @@ function renderizarEliminacion() {
         <div class="bracket-team-name">${escHtml(visitante?.nombre || 'Por definir')}<div class="text-xs text-gray-400 font-normal">${escHtml(visitante?.equipo || '')}</div></div>
         <div class="bracket-team-score">${p.jugado ? p.golesVisitante : '—'}</div>
       </div>
-      ${p.penalGanadorId ? `<div class="text-xs text-center text-yellow-400 py-1 border-t border-white/8">Penales: ${escHtml(jugadorPorId(p.penalGanadorId)?.nombre || '?')}</div>` : ''}
+      ${agregadoHTML}
+      ${p.desempateGanadorId ? `<div class="text-xs text-center text-yellow-400 py-1 border-t border-white/8">${p.desempateTipo === 'manual' ? 'Definido a mano' : 'Penales'}: ${escHtml(jugadorPorId(p.desempateGanadorId)?.nombre || '?')}</div>` : ''}
     `;
     matchEl.addEventListener('click', () => abrirModalResultado(p.id, 'eliminacion'));
     roundDiv.appendChild(matchEl);
@@ -1477,7 +1549,7 @@ function renderizarDashboard() {
     gruposDiv.appendChild(titulo);
 
     estado.grupos.forEach(g => {
-      const pos = calcularPosiciones(g.id);
+      const pos = posicionesDeGrupo(g.id);
       const wrap = document.createElement('div');
       wrap.className = 'card-glass mb-3 overflow-hidden';
       wrap.innerHTML = `
@@ -1520,7 +1592,7 @@ function renderizarDashboard() {
     rondas.forEach(ronda => {
       const partidos = estado.partidos_eliminacion.filter(p => p.ronda === ronda);
       const totalEq = Math.pow(2, rondas.length - ronda);
-      const nombreRonda = NOMBRES_RONDAS[totalEq] || `Ronda ${ronda + 1}`;
+      const nombreRonda = nombreDeRonda(totalEq) || `Ronda ${ronda + 1}`;
       const seccion = document.createElement('div');
       seccion.className = 'mb-4';
       seccion.innerHTML = `<p class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">${escHtml(nombreRonda)}</p>`;
@@ -1558,6 +1630,9 @@ function renderizarDashboard() {
 // ── CONFETTI ─────────────────────────────────────────────────
 
 function lanzarConfetti() {
+  // Puramente decorativo (el nombre/equipo del campeón ya se muestra en
+  // texto aparte) — se omite por completo con movimiento reducido (FR-011).
+  if (movimientoReducido()) return;
   const canvas = document.getElementById('confetti-canvas');
   if (!canvas) return;
   const ctx = canvas.getContext('2d');
@@ -1608,7 +1683,8 @@ function exportarJSON() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `torneo_${(estado.meta.nombre || 'fc26').replace(/\s+/g, '_')}_${Date.now()}.json`;
+    const slugDefault = estado.competicion ? COMPETICIONES[estado.competicion].textos.nombreExportDefault : 'torneo';
+    a.download = `torneo_${(estado.meta.nombre || slugDefault).replace(/\s+/g, '_')}_${Date.now()}.json`;
     a.click();
     URL.revokeObjectURL(url);
     mostrarToast('Torneo exportado', 'success');
@@ -1622,9 +1698,13 @@ function importarJSON(file) {
   const reader = new FileReader();
   reader.onload = e => {
     try {
-      const datos = JSON.parse(e.target.result);
+      const datos = migrarEstado(JSON.parse(e.target.result));
       estado = Object.assign(crearEstadoVacio(), datos);
+      estado.meta = Object.assign({ nombre: '', logo: '', tema: 'dark' }, datos.meta);
+      aplicarPaletaCompeticion(estado.competicion);
       guardar();
+      document.getElementById('app-header').classList.remove('hidden');
+      document.getElementById('bottom-nav').classList.remove('hidden');
       irAFaseCorrecta();
       mostrarToast('Torneo importado correctamente', 'success');
     } catch (err) {
@@ -1635,14 +1715,15 @@ function importarJSON(file) {
 }
 
 function copiarResumen() {
-  let texto = `== ${estado.meta.nombre || 'Torneo FC 26'} ==\n\n`;
+  const nombreDefault = estado.competicion ? COMPETICIONES[estado.competicion].textos.nombreResumenDefault : 'Torneo';
+  let texto = `== ${estado.meta.nombre || nombreDefault} ==\n\n`;
   texto += `Fase: ${FASES_TEXTO[estado.fase]}\n\n`;
 
   if (estado.grupos.length > 0) {
     texto += '=== FASE DE GRUPOS ===\n';
     estado.grupos.forEach(g => {
       texto += `\n${g.nombre}:\n`;
-      const pos = calcularPosiciones(g.id);
+      const pos = posicionesDeGrupo(g.id);
       pos.forEach((s, i) => {
         const j = jugadorPorId(s.id);
         texto += `  ${i + 1}. ${j?.nombre} (${j?.equipo}) — ${s.pts} pts\n`;
@@ -1689,19 +1770,26 @@ function inicializar() {
   const hayDatos = cargar();
   aplicarTema(estado.meta.tema);
 
-  if (!hayDatos || estado.fase === 'setup') {
-    mostrarPantalla('setup');
-    inicializarSetup();
+  if (!hayDatos) {
+    // Sin torneo activo: pantalla de selección de competición (D1/FR-001)
+    mostrarPantalla('competicion');
+    inicializarSeleccionCompeticion();
   } else {
-    // Mostrar header y nav siempre que hay datos
-    document.getElementById('app-header').classList.remove('hidden');
-    document.getElementById('bottom-nav').classList.remove('hidden');
-    irAFaseCorrecta();
-    // Renderizar pantallas en background
-    if (['fase_grupos', 'clasificados', 'eliminacion', 'finalizado'].includes(estado.fase)) {
-      renderizarFaseGrupos();
-      renderizarEliminacion();
-      if (estado.fase === 'clasificados') renderizarClasificados();
+    aplicarPaletaCompeticion(estado.competicion);
+    if (estado.fase === 'setup') {
+      mostrarPantalla('setup');
+      inicializarSetup();
+    } else {
+      // Mostrar header y nav siempre que hay datos
+      document.getElementById('app-header').classList.remove('hidden');
+      document.getElementById('bottom-nav').classList.remove('hidden');
+      irAFaseCorrecta();
+      // Renderizar pantallas en background
+      if (['fase_grupos', 'clasificados', 'eliminacion', 'finalizado'].includes(estado.fase)) {
+        renderizarFaseGrupos();
+        renderizarEliminacion();
+        if (estado.fase === 'clasificados') renderizarClasificados();
+      }
     }
   }
 
@@ -1728,6 +1816,17 @@ function vincularEventos() {
   });
 
   document.getElementById('btn-confirmar-jugadores')?.addEventListener('click', confirmarJugadores);
+
+  // Formato del torneo (FR-004/D3)
+  document.getElementById('btn-formato-grupos-unico')?.addEventListener('click', () => seleccionarFormatoUI('grupos', 'unico'));
+  document.getElementById('btn-formato-grupos-ida-vuelta')?.addEventListener('click', () => seleccionarFormatoUI('grupos', 'ida_vuelta'));
+  document.getElementById('btn-formato-elim-unico')?.addEventListener('click', () => seleccionarFormatoUI('elim', 'unico'));
+  document.getElementById('btn-formato-elim-ida-vuelta')?.addEventListener('click', () => seleccionarFormatoUI('elim', 'ida_vuelta'));
+  document.getElementById('btn-formato-penales')?.addEventListener('click', () => {
+    const btn = document.getElementById('btn-formato-penales');
+    const activo = btn.getAttribute('aria-checked') === 'true';
+    btn.setAttribute('aria-checked', activo ? 'false' : 'true');
+  });
 
   document.getElementById('input-torneo-nombre')?.addEventListener('input', () => {
     document.getElementById('input-torneo-nombre').classList.remove('error');
@@ -1857,15 +1956,16 @@ function vincularEventos() {
     });
   });
 
-  // Mostrar/ocultar penales al cambiar goles
+  // FR-004a: alternar entre penales y definición manual dentro del mismo modal
+  document.getElementById('btn-desempate-alternar')?.addEventListener('click', () => {
+    _desempateModoManual = !_desempateModoManual;
+    document.querySelectorAll('.penal-btn').forEach(b => b.classList.remove('active'));
+    actualizarSeccionDesempate();
+  });
+
+  // Mostrar/ocultar sección de desempate (penales o manual) al cambiar goles
   ['input-goles-local', 'input-goles-visitante'].forEach(id => {
-    document.getElementById(id)?.addEventListener('input', () => {
-      if (partidoEditando?.tipo === 'eliminacion') {
-        const gl = parseInt(document.getElementById('input-goles-local').value) || 0;
-        const gv = parseInt(document.getElementById('input-goles-visitante').value) || 0;
-        document.getElementById('penales-section').classList.toggle('hidden', gl !== gv);
-      }
-    });
+    document.getElementById(id)?.addEventListener('input', actualizarSeccionDesempate);
   });
 
   // ── SORTEAR EQUIPOS ──
@@ -1965,6 +2065,7 @@ function vincularEventos() {
       'Se borrarán todos los datos. Esta acción no se puede deshacer.',
       () => {
         limpiarStorage();
+        // D1: reiniciar lleva a la selección de competición, no directo al setup.
         location.reload();
       }
     );

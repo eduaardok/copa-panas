@@ -8,6 +8,25 @@
 
 **Input**: User description: "Refactor de la app existente (Torneo Amigos FC 26) para desacoplar el motor de torneo de la capa de tema/competición, y aplicar en el mismo paso el rediseño visual profundo definido para v2 — sin romper el flujo funcional actual del Mundial. Debe resultar en: un modelo de datos donde jugador.equipo, formato de torneo (partido único / ida-vuelta) y pool de equipos dejen de estar hardcodeados y pasen a ser configuración cargada según la competición elegida; una nueva pantalla de selección de competición, alcanzable solo cuando no hay torneo activo (D1); rediseño visual de toda la app con objetivo estético futbolero/gamer, respetando el Principio VI (Impeccable/Kowalski: restricción, propósito claro, transform/opacity, prefers-reduced-motion); paleta de Mundial se mantiene (negro/rojo/azul/verde/dorado) pero puede reestilizarse dentro de ese esquema; paleta de Champions fuera de alcance; el flujo funcional actual completo debe seguir funcionando igual para Mundial 2026 tras el refactor — cambia el look y la estructura interna, no el comportamiento ni los pasos del usuario; aplicar el mapa motor/tema de la constitución como punto de partida, re-verificando contra el código real. Fuera de alcance: implementar Champions League en sí (competición, pool de equipos, paleta propia)."
 
+## Clarifications
+
+### Session 2026-08-25
+
+- Q: ¿La reutilización de pool de jugadores entre torneos (decisión D4 de la constitución: entidad `jugador` separada de `jugador_en_torneo`, clave `jugadores_conocidos`) está dentro del alcance de esta spec, o se deja para una spec posterior? → A: Fuera de alcance — se deja para una spec futura dedicada a D4.
+- Q: ¿Los penales en empate de eliminación directa deben quedar como parámetro configurable dentro de esta spec (Configuración de formato), o siguen hardcodeados como hoy? → A: Configurable en esta spec — se agrega el toggle de penales sí/no a la Configuración de formato.
+- Q: ¿Cómo debe el sistema distinguir un torneo guardado en formato previo al refactor (para FR-008) de uno en formato nuevo? → A: Campo de versión/esquema explícito (ej. `version`) en el estado guardado, en vez de inferir por ausencia del campo `competicion`.
+- Q: ¿El requisito de que el rediseño visual soporte desktop (no solo mobile) debe fijarse en esta spec, dejando los breakpoints concretos para el plan técnico? → A: Sí — la spec exige comportamiento responsive con desktop no degradado; los breakpoints exactos se definen en `/speckit.plan`.
+
+### Session 2026-08-25 (implementación, extensión del selector manual)
+
+- Q: El selector manual de desempate ("Definir manualmente quién avanza") se implementó primero
+  como fallback de última instancia solo para `configFormato.penales === false`. ¿Debe quedar
+  disponible SIEMPRE en cualquier partido de eliminación con resultado empatado, sin importar el
+  valor de `penales`? → A: Sí — disponible siempre. Caso de uso real: el cruce queda empatado (o
+  no se completa) y uno de los jugadores cede el lugar por acuerdo, lesión, o cualquier motivo
+  externo al sistema, incluso con `penales:true` activado. El sistema solo necesita registrar
+  quién avanza, no imponer que la única vía de desempate con `penales:true` sea jugar penales.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Elegir competición antes de crear un torneo (Priority: P1)
@@ -125,9 +144,16 @@ mismo lenguaje visual renovado, que ninguna pantalla quedó con el estilo anteri
   exista un torneo activo, redirigiendo a la pantalla correspondiente a la fase actual del torneo.
 - **FR-003**: El sistema MUST derivar el pool de equipos disponibles para asignar a jugadores a
   partir de la configuración de la competición elegida, no de una constante fija del motor.
-- **FR-004**: El sistema MUST derivar el formato del torneo (partido único o ida/vuelta, tanto en
-  fase de grupos como en eliminación directa) a partir de la configuración de la competición
-  elegida, permitiendo que el usuario lo edite antes de confirmar la creación del torneo.
+- **FR-004**: El sistema MUST derivar el formato del torneo (partido único o ida/vuelta tanto en
+  fase de grupos como en eliminación directa, y si la eliminación directa usa penales en caso de
+  empate) a partir de la configuración de la competición elegida, permitiendo que el usuario edite
+  los tres parámetros antes de confirmar la creación del torneo.
+- **FR-004a**: El sistema MUST ofrecer, en cualquier partido de eliminación directa con resultado
+  empatado (partido único o marcador agregado en ida/vuelta), la opción de definir manualmente
+  quién avanza — disponible siempre, independientemente del valor de `configFormato.penales`. Con
+  `penales:false` es la única vía de desempate; con `penales:true` es una alternativa a jugar
+  penales, para cubrir casos externos al sistema (acuerdo entre jugadores, lesión, etc.). El
+  sistema únicamente registra la decisión, no impone cómo se llegó a ella.
 - **FR-005**: El motor de cálculo (generación de calendario, tabla de posiciones y desempates,
   generación y avance de bracket de eliminación) MUST operar exclusivamente sobre estructuras de
   datos y el objeto de configuración de formato, sin referenciar nombres de competición, textos de
@@ -140,11 +166,19 @@ mismo lenguaje visual renovado, que ninguna pantalla quedó con el estilo anteri
   importarlo, incluyendo la competición elegida y su configuración de formato, de modo que el
   torneo se reconstruya de forma idéntica.
 - **FR-008**: El sistema MUST reconocer y migrar sin pérdida de datos un torneo guardado con la
-  estructura de localStorage previa al refactor (sin campo de competición explícito),
-  interpretándolo como un torneo de la competición Mundial.
+  estructura de localStorage previa al refactor, interpretándolo como un torneo de la competición
+  Mundial. La detección MUST basarse en un campo explícito de versión/esquema en el estado
+  guardado (los datos previos al refactor, al no tener ese campo, se tratan como versión anterior),
+  no en inferir el formato por la presencia o ausencia de otros campos como `competicion`.
 - **FR-009**: El sistema MUST aplicar el rediseño visual a la totalidad de las pantallas del flujo
   (selección de competición, setup, asignación de equipos, configuración de grupos, fase de
   grupos, clasificados, eliminación, dashboard, config), no solo a las pantallas nuevas.
+- **FR-010a**: El rediseño visual MUST comportarse de forma responsive en al menos tres anchos de
+  pantalla (mobile, tablet, desktop): mobile mantiene prioridad de diseño (touch targets ≥44px,
+  `dvh`, sin zoom automático de Safari) y ningún ajuste de desktop MUST degradar la experiencia
+  mobile actual; en desktop, componentes como la tabla de posiciones y el bracket MUST aprovechar
+  el espacio disponible en vez de limitarse a centrar el layout mobile en una columna angosta. Los
+  breakpoints exactos se definen en el plan técnico de esta feature.
 - **FR-010**: El sistema MUST mantener el torneo Mundial dentro del esquema de color establecido
   (negro, rojo, azul, verde, dorado) aunque se reestilicen los componentes visuales sobre ese
   esquema.
@@ -172,9 +206,12 @@ mismo lenguaje visual renovado, que ninguna pantalla quedó con el estilo anteri
 - **Jugador**: Participante del torneo activo, con su equipo asignado (`jugador.equipo`) tomado
   del pool de la competición elegida. La estructura del jugador no cambia entre competiciones.
 - **Configuración de formato**: Objeto de datos que indica si la fase de grupos y la eliminación
-  directa se juegan a partido único o ida/vuelta. Vive en el torneo activo, se inicializa con el
-  default de la competición elegida y es editable por el usuario antes de confirmar la creación
-  del torneo.
+  directa se juegan a partido único o ida/vuelta, y si la eliminación directa resuelve empates por
+  penales. Vive en el torneo activo, se inicializa con el default de la competición elegida y es
+  editable por el usuario antes de confirmar la creación del torneo. El valor de `penales` decide
+  si el sistema pide penales por defecto ante un empate en eliminación, pero no es la única vía de
+  desempate posible: la definición manual de quién avanza (FR-004a) está siempre disponible como
+  alternativa, sin importar este valor.
 
 ## Success Criteria *(mandatory)*
 
@@ -196,6 +233,9 @@ mismo lenguaje visual renovado, que ninguna pantalla quedó con el estilo anteri
 - **SC-006**: Una inspección del código del motor (calendario, posiciones, desempates, bracket)
   no encuentra ninguna referencia directa a "Mundial", "FC 26", nombres de equipos concretos ni
   valores de color — todo llega como parámetro o configuración.
+- **SC-007**: Al recorrer el flujo completo en tres anchos de pantalla representativos (mobile,
+  tablet, desktop), ninguna pantalla presenta touch targets menores a 44px en mobile ni un layout
+  desktop que sea simplemente el layout mobile centrado en una columna angosta.
 
 ## Assumptions
 
@@ -214,6 +254,10 @@ mismo lenguaje visual renovado, que ninguna pantalla quedó con el estilo anteri
 - Esta spec no incluye la competición Champions League en sí (ni su pool de equipos ni su paleta);
   solo deja la pantalla de selección de competición y el modelo de datos preparados para que una
   spec posterior agregue Champions sin volver a tocar el motor.
+- La reutilización de pool de jugadores entre torneos (D4 de la constitución: entidad `jugador`
+  separada de `jugador_en_torneo`, clave `jugadores_conocidos`) queda fuera de alcance de esta
+  spec. Cada torneo nuevo sigue arrancando con lista de jugadores vacía, sin ofrecer importación
+  desde un registro acumulado; D4 se implementa en una spec posterior dedicada.
 - El "objetivo estético futbolero/gamer" se valida cualitativamente por revisión del equipo (no
   hay métrica de mercado disponible para esta v2), apoyándose en el Principio VI de la
   constitución como criterio de aceptación de las decisiones de animación.

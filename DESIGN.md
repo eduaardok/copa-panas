@@ -222,11 +222,16 @@ Touch targets mínimos de 44px (`counter-btn`, `mode-btn`, `penal-btn`,
 tabs) — regla dura heredada de compatibilidad mobile, no solo
 convención visual.
 
-Desktop (definido por CLAUDE.md, aún no implementado en el CSS
-incumbente): la nav inferior fija y el layout de una columna son
-decisiones de mobile que no deben estirarse sin más a pantallas anchas
-— tabla de posiciones y bracket deben aprovechar espacio horizontal
-adicional en vez de permanecer en una columna angosta centrada.
+Desktop (≥1024px, implementado en `specs/001-desacople-motor-rediseno`):
+la nav inferior fija se reposiciona como barra horizontal secundaria
+debajo del header (`.bottom-nav` pasa a `position:fixed; top:` en vez de
+`bottom:`, tabs en fila en vez de columna) — mismo componente, mismos
+roles de color, sin duplicar markup ni lógica de JS. El contenido
+central se centra con `max-width:1040px; margin:0 auto`. La tabla de
+posiciones (`#grupos-content`) pasa a grilla de 2 columnas (posiciones +
+partidos lado a lado) y el bracket (`.bracket-round`) pasa de columna a
+fila con wrap, para aprovechar el espacio horizontal en vez de quedar en
+una columna angosta centrada. Mobile (`<1024px`) no cambia.
 
 ## Elevation & Depth
 
@@ -331,8 +336,10 @@ Es la aplicación más pura del North Star — literalmente el marcador.
 Bottom nav fija de 5 tabs (mobile): ícono + label de 10px, color gris
 por defecto, dorado + `translateY(-2px)` del ícono en estado activo.
 Header fijo con logo circular opcional, título Bebas Neue y toggle de
-tema (sol/luna) a la derecha. En desktop, este patrón de nav inferior
-fija debe repensarse (ver Layout) en vez de estirarse tal cual.
+tema (sol/luna) a la derecha. En desktop (≥1024px), este mismo
+componente se repositiona como barra horizontal debajo del header en
+vez de nav inferior fija (ver Layout) — implementado, no estirado tal
+cual.
 
 ## Do's and Don'ts
 
