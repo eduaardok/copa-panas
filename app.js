@@ -205,11 +205,13 @@ function inicializarSeleccionCompeticion() {
   if (!container) return;
   container.innerHTML = '';
   Object.values(COMPETICIONES).forEach(comp => {
+    const acento = comp.paletaCSS['--gold'] ?? FALLBACK_PALETA['--gold'];
     const btn = document.createElement('button');
     btn.className = 'competicion-card';
     btn.dataset.competicionId = comp.id;
+    btn.style.setProperty('--card-accent', acento);
     btn.innerHTML = `
-      <i class="fa-solid fa-trophy text-3xl text-gold mb-2"></i>
+      <i class="fa-solid fa-trophy text-3xl mb-2" style="color: var(--card-accent)"></i>
       <span class="font-bebas text-2xl tracking-wider">${escHtml(comp.nombre)}</span>
     `;
     btn.addEventListener('click', () => elegirCompeticion(comp.id));

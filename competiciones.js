@@ -13,6 +13,20 @@
 
 'use strict';
 
+// Lista canónica de variables CSS que cualquier competición puede definir en
+// paletaCSS. No vive dentro de cada entrada de COMPETICIONES — es compartida
+// (spec 002, data-model.md "Fallback de paleta").
+const VARIABLES_PALETA = ['--red', '--blue', '--green', '--gold'];
+
+// Valor a usar cuando una competición no define una de las variables de
+// VARIABLES_PALETA (spec 002 FR-004a). Hoy solo --green tiene fallback: es
+// el verde funcional ya usado en toda la app para "fase de grupos / éxito"
+// (DESIGN.md, "Verde Fase de Grupos" — rol semántico compartido, no una
+// decisión de marca por competición).
+const FALLBACK_PALETA = {
+  '--green': '#00a64e'
+};
+
 const COMPETICIONES = {
   mundial: {
     id: 'mundial',
@@ -63,14 +77,60 @@ const COMPETICIONES = {
     // Formato sugerido por defecto — el usuario siempre puede editarlo (D3/FR-004).
     // Reproduce el comportamiento actual: partido único + penales activos.
     formatoDefault: { grupos: 'unico', eliminacion: 'unico', penales: true }
+  },
+
+  champions: {
+    id: 'champions',
+    nombre: 'Champions League',
+
+    // Lista fija de 20 clubes reconocibles y habituales de Champions —
+    // mismo patrón que las 15 selecciones fijas de Mundial (spec 002 FR-003).
+    poolEquipos: [
+      'Real Madrid', 'Barcelona', 'Bayern Múnich', 'Manchester City',
+      'Manchester United', 'Liverpool', 'Chelsea', 'Arsenal', 'Tottenham',
+      'Paris Saint-Germain', 'Juventus', 'AC Milan', 'Inter de Milán',
+      'Napoli', 'Atlético de Madrid', 'Borussia Dortmund', 'Ajax',
+      'Porto', 'Benfica', 'Sevilla'
+    ],
+
+    // Base negro/plata/azul UEFA (spec 002 FR-004). Sin --green (sin rol de
+    // marca en Champions — usa el fallback compartido, FALLBACK_PALETA) y
+    // sin variable de fondo (el fondo es global por tema, no por
+    // competición — ver data-model.md "Decisión: el fondo no es parte de
+    // paletaCSS").
+    paletaCSS: {
+      '--red': '#e63946',
+      '--blue': '#0e1e5b',
+      '--gold': '#c0c4cc'
+    },
+
+    // Mismas 6 claves que Mundial, mismo patrón de textos (spec 002 research.md §3).
+    textos: {
+      tituloTorneoDefault: 'TORNEO CHAMPIONS',
+      textoAsignarEquipos: 'Elige cómo asignar los clubes de {NOMBRE}',
+      tituloSorteoEquipos: 'SORTEANDO CLUBES',
+      subtituloSorteoEquipos: 'Asignando clubes de {NOMBRE}...',
+      nombreExportDefault: 'champions',
+      nombreResumenDefault: 'Torneo Champions'
+    },
+
+    // D3: Champions sugiere ida/vuelta en grupos y eliminación.
+    formatoDefault: { grupos: 'ida_vuelta', eliminacion: 'ida_vuelta', penales: true }
   }
 };
 
-/** Aplica la paleta de una competición como variables CSS sobre :root. */
+/**
+ * Aplica la paleta de una competición como variables CSS sobre :root.
+ * Resetea siempre las 4 variables de VARIABLES_PALETA (no solo las que la
+ * competición define) usando FALLBACK_PALETA para las ausentes, de forma
+ * determinística sin importar qué competición estaba cargada antes en la
+ * misma sesión (spec 002 FR-004a, contracts/palette-application-contract.md).
+ */
 function aplicarPaletaCompeticion(competicionId) {
   const comp = COMPETICIONES[competicionId];
   if (!comp) return;
-  Object.entries(comp.paletaCSS).forEach(([variable, valor]) => {
+  VARIABLES_PALETA.forEach(variable => {
+    const valor = comp.paletaCSS[variable] ?? FALLBACK_PALETA[variable];
     document.documentElement.style.setProperty(variable, valor);
   });
 }

@@ -141,6 +141,15 @@ Reglas concretas:
   Safari.
 - Todos los modales/popups se cierran con botón X y tocando/clickeando
   fuera del área — en desktop esto debe funcionar igual con mouse.
+- **Excepción puntual de compatibilidad (`color-mix()`, spec 002 FR-010)**:
+  en Safari/iOS < 16.2 los efectos translúcidos/glow derivados de paleta
+  (fondos translúcidos, sombras, glow — ej. el brillo de la pantalla de
+  campeón) se degradan porque esas versiones no soportan `color-mix()`;
+  la propiedad puntual cae a su valor inicial/heredado, sin color
+  incorrecto ni layout roto. Es una excepción acotada a ese efecto visual,
+  no una baja del baseline de iOS 15+ de más abajo — el resto de la app
+  (colores sólidos, layout, funcionalidad) sigue soportando iOS 15+ sin
+  excepción. Ver `specs/002-champions-league/contracts/derived-tones-contract.md`.
 
 ---
 
