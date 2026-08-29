@@ -11,6 +11,7 @@
 // ── Constantes ──────────────────────────────────────────────
 
 const CLAVE_LS = 'torneo_data';
+const CLAVE_LS_JUGADORES = 'jugadores_conocidos';
 const VERSION_ESQUEMA = 2;
 
 const FASES_TEXTO = {
@@ -95,6 +96,49 @@ function limpiarStorage() {
     localStorage.removeItem(CLAVE_LS);
   } catch (e) { /* ignorar */ }
   estado = crearEstadoVacio();
+}
+
+// ── Registro de jugadores conocidos (D4 — reutilizable entre torneos) ─
+// Persistencia independiente de CLAVE_LS/torneo_data (ver spec 003).
+
+function normalizarNombreJugador(nombre) {
+  return (nombre || '').trim().replace(/\s+/g, ' ').toLowerCase();
+}
+
+function cargarJugadoresConocidos() {
+  try {
+    const raw = localStorage.getItem(CLAVE_LS_JUGADORES);
+    if (!raw) return [];
+    const datos = JSON.parse(raw);
+    return Array.isArray(datos) ? datos : [];
+  } catch (e) {
+    return [];
+  }
+}
+
+function guardarJugadoresConocidos(lista) {
+  try {
+    localStorage.setItem(CLAVE_LS_JUGADORES, JSON.stringify(lista));
+  } catch (e) {
+    mostrarToast('Error al guardar el registro de jugadores (localStorage lleno)', 'error');
+  }
+}
+
+function actualizarRegistroJugadores(jugadoresDelRoster) {
+  const registro = cargarJugadoresConocidos();
+  jugadoresDelRoster.forEach(jugador => {
+    const nombreNormalizado = normalizarNombreJugador(jugador.nombre);
+    if (!nombreNormalizado) return;
+    const existente = registro.find(j => j.nombreNormalizado === nombreNormalizado);
+    const ultimoUso = new Date().toISOString();
+    if (existente) {
+      existente.nombre = jugador.nombre;
+      existente.ultimoUso = ultimoUso;
+    } else {
+      registro.push({ nombreNormalizado, nombre: jugador.nombre, ultimoUso });
+    }
+  });
+  guardarJugadoresConocidos(registro);
 }
 
 // ── Toast ────────────────────────────────────────────────────
@@ -286,6 +330,7 @@ function inicializarSetup() {
   document.getElementById('btn-formato-penales').setAttribute('aria-checked', estado.configFormato.penales ? 'true' : 'false');
 
   renderizarListaJugadores();
+  actualizarVisibilidadImportarJugadores();
 }
 
 function seleccionarFormatoUI(prefijo, valor) {
@@ -295,45 +340,47 @@ function seleccionarFormatoUI(prefijo, valor) {
   });
 }
 
+function crearFilaJugador(index, nombreInicial) {
+  const container = document.getElementById('lista-jugadores');
+  const row = document.createElement('div');
+  row.className = 'jugador-row';
+  row.dataset.index = index;
+  row.innerHTML = `
+    <div class="jugador-num">#${index + 1}</div>
+    <div class="jugador-input-wrap flex-1">
+      <input
+        type="text"
+        class="jugador-input w-full"
+        placeholder="Nombre del jugador"
+        maxlength="20"
+        autocomplete="off"
+        data-index="${index}"
+        value="${nombreInicial ? escHtml(nombreInicial) : ''}"
+      />
+      <p class="jugador-error">Nombre vacío o duplicado</p>
+    </div>
+  `;
+  const inp = row.querySelector('.jugador-input');
+  inp.addEventListener('input', validarJugadores);
+  inp.addEventListener('keydown', e => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      const siguiente = container.querySelector(`[data-index="${parseInt(inp.dataset.index) + 1}"]`);
+      if (siguiente) siguiente.focus();
+      else document.getElementById('btn-confirmar-jugadores').focus();
+    }
+  });
+  return row;
+}
+
 function renderizarListaJugadores() {
   const container = document.getElementById('lista-jugadores');
   container.innerHTML = '';
 
   for (let i = 0; i < _numJugadores; i++) {
     const jugadorExistente = estado.jugadores[i];
-    const row = document.createElement('div');
-    row.className = 'jugador-row';
-    row.dataset.index = i;
-    row.innerHTML = `
-      <div class="jugador-num">#${i + 1}</div>
-      <div class="jugador-input-wrap flex-1">
-        <input
-          type="text"
-          class="jugador-input w-full"
-          placeholder="Nombre del jugador"
-          maxlength="20"
-          autocomplete="off"
-          data-index="${i}"
-          value="${jugadorExistente ? escHtml(jugadorExistente.nombre) : ''}"
-        />
-        <p class="jugador-error">Nombre vacío o duplicado</p>
-      </div>
-    `;
-    container.appendChild(row);
+    container.appendChild(crearFilaJugador(i, jugadorExistente ? jugadorExistente.nombre : ''));
   }
-
-  // Eventos en los inputs
-  container.querySelectorAll('.jugador-input').forEach(inp => {
-    inp.addEventListener('input', validarJugadores);
-    inp.addEventListener('keydown', e => {
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        const siguiente = container.querySelector(`[data-index="${parseInt(inp.dataset.index) + 1}"]`);
-        if (siguiente) siguiente.focus();
-        else document.getElementById('btn-confirmar-jugadores').focus();
-      }
-    });
-  });
 
   validarJugadores();
 }
@@ -345,15 +392,16 @@ function validarJugadores() {
 
   inputs.forEach(inp => {
     const val = inp.value.trim();
+    const normalizado = normalizarNombreJugador(inp.value);
     inp.classList.remove('error');
     if (!val) {
       inp.classList.add('error');
       valido = false;
-    } else if (nombres.includes(val.toLowerCase())) {
+    } else if (nombres.includes(normalizado)) {
       inp.classList.add('error');
       valido = false;
     }
-    nombres.push(val.toLowerCase());
+    nombres.push(normalizado);
   });
 
   document.getElementById('btn-confirmar-jugadores').disabled = !valido;
@@ -411,8 +459,112 @@ function confirmarJugadores() {
 
   estado.fase = 'equipos';
   guardar();
+  actualizarRegistroJugadores(estado.jugadores);
   inicializarEquipos();
   mostrarPantalla('equipos');
+}
+
+// ── Importar jugadores desde el registro (D4) ─────────────────
+
+let _seleccionadosImport = new Set();
+
+function actualizarVisibilidadImportarJugadores() {
+  const btn = document.getElementById('btn-importar-jugadores');
+  if (btn) btn.classList.toggle('hidden', cargarJugadoresConocidos().length === 0);
+}
+
+function abrirModalImportarJugadores() {
+  const registro = cargarJugadoresConocidos();
+  const nombresEnRoster = new Set(
+    Array.from(document.querySelectorAll('#lista-jugadores .jugador-input'))
+      .map(inp => normalizarNombreJugador(inp.value))
+      .filter(Boolean)
+  );
+  const disponibles = registro.filter(j => !nombresEnRoster.has(j.nombreNormalizado));
+
+  _seleccionadosImport = new Set();
+  const cont = document.getElementById('lista-importar-jugadores');
+  cont.innerHTML = '';
+
+  if (disponibles.length === 0) {
+    cont.innerHTML = '<p class="text-sm text-center py-4" style="color:var(--gray-text)">No hay jugadores nuevos para importar.</p>';
+  } else {
+    disponibles.forEach(j => {
+      const row = document.createElement('div');
+      row.className = 'clasificado-row';
+      row.dataset.nombreNormalizado = j.nombreNormalizado;
+      row.innerHTML = `
+        <div class="cl-check"><i class="fa-solid fa-check"></i></div>
+        <div class="cl-info"><div class="cl-nombre">${escHtml(j.nombre)}</div></div>
+      `;
+      row.addEventListener('click', () => toggleImportJugador(j.nombreNormalizado, row));
+      cont.appendChild(row);
+    });
+  }
+
+  document.getElementById('modal-importar-jugadores').classList.remove('hidden');
+}
+
+function toggleImportJugador(nombreNormalizado, row) {
+  if (_seleccionadosImport.has(nombreNormalizado)) {
+    _seleccionadosImport.delete(nombreNormalizado);
+  } else {
+    _seleccionadosImport.add(nombreNormalizado);
+  }
+  row.classList.toggle('selected', _seleccionadosImport.has(nombreNormalizado));
+}
+
+function cerrarModalImportarJugadores() {
+  document.getElementById('modal-importar-jugadores').classList.add('hidden');
+}
+
+function importarJugadoresSeleccionados() {
+  if (_seleccionadosImport.size === 0) {
+    cerrarModalImportarJugadores();
+    return;
+  }
+
+  const registro = cargarJugadoresConocidos();
+  const nombres = registro
+    .filter(j => _seleccionadosImport.has(j.nombreNormalizado))
+    .map(j => j.nombre);
+
+  const vacios = Array.from(document.querySelectorAll('#lista-jugadores .jugador-input'))
+    .filter(inp => !inp.value.trim());
+
+  let colocados = 0;
+  const restantes = [];
+  nombres.forEach((nombre, i) => {
+    if (i < vacios.length) {
+      vacios[i].value = nombre;
+      colocados++;
+    } else {
+      restantes.push(nombre);
+    }
+  });
+
+  const sinCupo = [];
+  const container = document.getElementById('lista-jugadores');
+  restantes.forEach(nombre => {
+    if (_numJugadores < 32) {
+      const fila = crearFilaJugador(_numJugadores, nombre);
+      container.appendChild(fila);
+      _numJugadores++;
+      document.getElementById('input-num-jugadores').value = _numJugadores;
+      colocados++;
+    } else {
+      sinCupo.push(nombre);
+    }
+  });
+
+  cerrarModalImportarJugadores();
+  validarJugadores();
+
+  if (sinCupo.length > 0) {
+    mostrarToast(`Sin cupo para: ${sinCupo.join(', ')} (máximo 32 jugadores)`, 'error');
+  } else if (colocados > 0) {
+    mostrarToast(`${colocados} jugador(es) importado(s) del registro`, 'success');
+  }
 }
 
 // ── PANTALLA 0b — ASIGNAR EQUIPOS ────────────────────────────
@@ -1818,6 +1970,14 @@ function vincularEventos() {
   });
 
   document.getElementById('btn-confirmar-jugadores')?.addEventListener('click', confirmarJugadores);
+
+  // Importar jugadores del registro (D4)
+  document.getElementById('btn-importar-jugadores')?.addEventListener('click', abrirModalImportarJugadores);
+  document.getElementById('btn-close-importar-jugadores')?.addEventListener('click', cerrarModalImportarJugadores);
+  document.getElementById('btn-confirmar-import-jugadores')?.addEventListener('click', importarJugadoresSeleccionados);
+  document.getElementById('modal-importar-jugadores')?.addEventListener('click', e => {
+    if (e.target === document.getElementById('modal-importar-jugadores')) cerrarModalImportarJugadores();
+  });
 
   // Formato del torneo (FR-004/D3)
   document.getElementById('btn-formato-grupos-unico')?.addEventListener('click', () => seleccionarFormatoUI('grupos', 'unico'));

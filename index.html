@@ -168,7 +168,12 @@
 
       <!-- Lista de jugadores -->
       <div class="form-group mb-6">
-        <label class="form-label">Jugadores</label>
+        <div class="flex items-center justify-between mb-2">
+          <label class="form-label mb-0">Jugadores</label>
+          <button id="btn-importar-jugadores" class="btn-import-registro hidden" type="button">
+            <i class="fa-solid fa-clock-rotate-left mr-1"></i>Importar del registro
+          </button>
+        </div>
         <div id="lista-jugadores" class="space-y-2"></div>
       </div>
 
@@ -588,6 +593,22 @@
         </button>
       </div>
       <button id="btn-sorteo-eq-cancelar" class="btn-secondary w-full mt-2">Cancelar</button>
+    </div>
+  </div>
+
+  <!-- ===== MODAL IMPORTAR JUGADORES ===== -->
+  <div id="modal-importar-jugadores" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-label="Importar jugadores del registro">
+    <div class="modal-box px-6 py-6">
+      <div class="flex items-center justify-between mb-5">
+        <h3 class="font-bebas text-xl text-gold tracking-wider">IMPORTAR JUGADORES</h3>
+        <button id="btn-close-importar-jugadores" class="modal-close-btn" aria-label="Cerrar">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+      <div id="lista-importar-jugadores" class="space-y-1 mb-5 max-h-64 overflow-y-auto scrollbar-hide"></div>
+      <button id="btn-confirmar-import-jugadores" class="btn-primary w-full">
+        <i class="fa-solid fa-check mr-2"></i>Agregar seleccionados
+      </button>
     </div>
   </div>
 
