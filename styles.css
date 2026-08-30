@@ -1448,6 +1448,29 @@ body {
   filter: drop-shadow(0 0 28px color-mix(in srgb, var(--gold) 45%, transparent));
 }
 
+/* Botón "volver" de screen-setup: entrada de baja fricción hacia screen-competicion
+   (spec 006), deliberadamente un ícono discreto y no el patrón ancho .btn-secondary
+   "Atrás" usado entre pasos del wizard — no es un paso más del flujo hacia adelante. */
+.btn-volver-competicion {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--white);
+  font-size: 16px;
+  border: none;
+  cursor: pointer;
+  transition: background-color 160ms ease;
+}
+
+.btn-volver-competicion:hover,
+.btn-volver-competicion:focus-visible {
+  background: rgba(255, 255, 255, 0.2);
+}
+
 /* ── Campeón card ── */
 @keyframes campeonReveal {
   from { opacity: 0; transform: scale(0.94); }

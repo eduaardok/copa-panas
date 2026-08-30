@@ -520,6 +520,17 @@ function mostrarConfirm(titulo, msg, callback) {
   document.getElementById('modal-confirm').classList.remove('hidden');
 }
 
+// ── Modal de reinicio (spec 006) ──────────────────────────────
+// Modal propio, no mostrarConfirm(): necesita una tercera acción (exportar)
+// que no cierra el modal, algo que el helper genérico de 2 botones no admite.
+function abrirModalReiniciar() {
+  document.getElementById('modal-reiniciar').classList.remove('hidden');
+}
+
+function cerrarModalReiniciar() {
+  cerrarModalConAnimacion('modal-reiniciar');
+}
+
 // ── Utilidades ───────────────────────────────────────────────
 
 // FR-011: con movimiento reducido, los intervalos de las animaciones de
@@ -548,6 +559,16 @@ function grupoPorId(id) {
 }
 
 // ── PANTALLA 0 — SETUP ───────────────────────────────────────
+
+// Sin fricción (spec 006, D-NAV-1): sin modal ni oferta de exportar, ya que en
+// este punto el estado solo tiene competición + configFormato por default. El
+// reload es necesario porque aplicarPaletaCompeticion() nunca revierte las
+// variables CSS que aplicó (competiciones.js) — solo así screen-competicion
+// queda sin la paleta "pegada" de la competición abandonada.
+function volverASeleccionCompeticion() {
+  limpiarStorage();
+  location.reload();
+}
 
 let _numJugadores = 4;
 
@@ -2231,6 +2252,8 @@ function vincularEventos() {
   document.getElementById('btn-theme-config')?.addEventListener('click', toggleTema);
 
   // ── SETUP ──
+  document.getElementById('btn-volver-competicion')?.addEventListener('click', volverASeleccionCompeticion);
+
   document.getElementById('btn-jugadores-menos')?.addEventListener('click', () => {
     if (_numJugadores > 4) { _numJugadores--; document.getElementById('input-num-jugadores').value = _numJugadores; renderizarListaJugadores(); }
   });
@@ -2498,16 +2521,20 @@ function vincularEventos() {
     if (e.target === document.getElementById('modal-admin-registro')) cerrarModalAdminRegistro();
   });
 
-  document.getElementById('btn-reiniciar')?.addEventListener('click', () => {
-    mostrarConfirm(
-      '¿REINICIAR TORNEO?',
-      'Se borrarán todos los datos. Esta acción no se puede deshacer.',
-      () => {
-        limpiarStorage();
-        // D1: reiniciar lleva a la selección de competición, no directo al setup.
-        location.reload();
-      }
-    );
+  document.getElementById('btn-reiniciar')?.addEventListener('click', abrirModalReiniciar);
+
+  // ── MODAL REINICIAR (spec 006) ──
+  // Exportar dispara la descarga sin cerrar el modal ni tocar el borrado —
+  // acción independiente de Cancelar/Confirmar.
+  document.getElementById('btn-reiniciar-exportar')?.addEventListener('click', exportarJSON);
+  document.getElementById('btn-reiniciar-cancelar')?.addEventListener('click', cerrarModalReiniciar);
+  document.getElementById('modal-reiniciar')?.addEventListener('click', e => {
+    if (e.target === document.getElementById('modal-reiniciar')) cerrarModalReiniciar();
+  });
+  document.getElementById('btn-reiniciar-confirmar')?.addEventListener('click', () => {
+    limpiarStorage();
+    // D1: reiniciar lleva a la selección de competición, no directo al setup.
+    location.reload();
   });
 
   // ── MODAL CONFIRM ──
