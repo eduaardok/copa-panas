@@ -22,7 +22,7 @@
   --blue-dim:  color-mix(in srgb, var(--blue) 12%, transparent);
   --green:     #00a64e;
   --green-dim: color-mix(in srgb, var(--green) 12%, transparent);
-  --gold:      #c9a84c;
+  --gold:      #FAC21E;
   --gold-light:color-mix(in srgb, var(--gold) 65%, white);
   --gold-dim:  color-mix(in srgb, var(--gold) 12%, transparent);
   --white:     #f0f3f8;
@@ -79,7 +79,13 @@ body {
 
 /* Franja del header: colores propios de la competición activa (--header-stripe,
    ver aplicarPaletaCompeticion en competiciones.js). Antes de elegir competición
-   cae al tricolor FIFA WC 2026 por defecto. */
+   (pantalla de selección) cae a los colores de marca de Copa Panas — dorado,
+   negro, blanco — en vez de los de ninguna competición en particular (todavía
+   no hay ninguna activa). El dorado se mantiene fijo en los dos temas; el
+   negro/blanco central usa var(--white), que ya es el rol semántico de
+   "máximo contraste" y se invierte solo por tema (casi blanco en oscuro,
+   casi negro en claro) — así la franja siempre contrasta contra el fondo
+   del header en vez de fundirse con él. */
 .app-header::after {
   content: '';
   position: absolute;
@@ -87,7 +93,7 @@ body {
   left: 0;
   right: 0;
   height: 3px;
-  background: var(--header-stripe, linear-gradient(90deg, var(--accent) 0%, var(--blue) 50%, var(--green) 100%));
+  background: var(--header-stripe, linear-gradient(90deg, #FAC21E 0%, var(--white) 50%, #FAC21E 100%));
 }
 
 .header-inner { min-height: 56px; }
