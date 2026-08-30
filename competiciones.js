@@ -16,7 +16,14 @@
 // Lista canónica de variables CSS que cualquier competición puede definir en
 // paletaCSS. No vive dentro de cada entrada de COMPETICIONES — es compartida
 // (spec 002, data-model.md "Fallback de paleta").
-const VARIABLES_PALETA = ['--red', '--blue', '--green', '--gold'];
+//
+// --red NO está acá a propósito: es un color semántico fijo de toda la app
+// (DESIGN.md "rojo-eliminación" — errores de validación, btn-danger, tab
+// activo de ronda eliminatoria), no una decisión de marca por competición.
+// Antes se sobreescribía junto con el resto de la paleta y eso mezclaba dos
+// roles distintos bajo la misma variable. --accent es el único rol de marca
+// que usa ese hueco visual (hoy solo la franja del header).
+const VARIABLES_PALETA = ['--accent', '--blue', '--green', '--gold'];
 
 // Valor a usar cuando una competición no define una de las variables de
 // VARIABLES_PALETA (spec 002 FR-004a). Hoy solo --green tiene fallback: es
@@ -42,7 +49,7 @@ const COMPETICIONES = {
     // Variables CSS a aplicar sobre :root al elegir/cargar esta competición.
     // Valores idénticos a los que hoy están hardcodeados en :root de styles.css.
     paletaCSS: {
-      '--red': '#e0182d',
+      '--accent': '#e0182d',
       '--blue': '#0052c8',
       '--green': '#00a64e',
       '--gold': '#c9a84c'
@@ -97,9 +104,13 @@ const COMPETICIONES = {
     // marca en Champions — usa el fallback compartido, FALLBACK_PALETA) y
     // sin variable de fondo (el fondo es global por tema, no por
     // competición — ver data-model.md "Decisión: el fondo no es parte de
-    // paletaCSS").
+    // paletaCSS"). --accent reutiliza el mismo plata que --gold (#c0c4cc) en
+    // vez del rojo original: Champions nunca tuvo un rojo real en su
+    // identidad (spec 002 la definió negro/plata/azul), y el rojo que
+    // llevaba antes venía de reusar por error el rol semántico --red
+    // (rojo-eliminación/errores de toda la app, no un color de marca).
     paletaCSS: {
-      '--red': '#e63946',
+      '--accent': '#c0c4cc',
       '--blue': '#0e1e5b',
       '--gold': '#c0c4cc'
     },
@@ -133,6 +144,19 @@ function aplicarPaletaCompeticion(competicionId) {
     const valor = comp.paletaCSS[variable] ?? FALLBACK_PALETA[variable];
     document.documentElement.style.setProperty(variable, valor);
   });
+
+  // Franja del header: solo usa colores que la competición define como propios
+  // (comp.paletaCSS), nunca el fallback compartido de --green — ese fallback
+  // es un verde semántico ("fase de grupos/éxito"), no una decisión de marca,
+  // y mezclarlo ahí le da a competiciones sin verde propio (ej. Champions) una
+  // franja con un color que no pertenece a su paleta.
+  const accent = comp.paletaCSS['--accent'];
+  const blue = comp.paletaCSS['--blue'];
+  const green = comp.paletaCSS['--green'];
+  const franja = green
+    ? `linear-gradient(90deg, ${accent} 0%, ${blue} 50%, ${green} 100%)`
+    : `linear-gradient(90deg, ${accent} 0%, ${blue} 100%)`;
+  document.documentElement.style.setProperty('--header-stripe', franja);
 }
 
 /** Resuelve un texto de competición reemplazando el placeholder {NOMBRE}. */

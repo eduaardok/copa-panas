@@ -9,8 +9,15 @@
   --bg:        #07090f;
   --bg-mid:    #0d1118;
   --bg-card:   #121826;
+  /* --red es fijo en toda la app (DESIGN.md "rojo-eliminación"): errores de
+     validación, btn-danger, tab activo de ronda eliminatoria. No es un color
+     de marca por competición — competiciones.js nunca lo sobreescribe. */
   --red:       #e0182d;
   --red-dim:   color-mix(in srgb, var(--red) 12%, transparent);
+  /* --accent sí es de marca: hoy solo alimenta la franja del header
+     (aplicarPaletaCompeticion en competiciones.js la fija por competición).
+     Este valor es el default antes de elegir competición. */
+  --accent:    #e0182d;
   --blue:      #0052c8;
   --blue-dim:  color-mix(in srgb, var(--blue) 12%, transparent);
   --green:     #00a64e;
@@ -70,7 +77,9 @@ body {
   box-shadow: 0 2px 20px rgba(0,0,0,0.6);
 }
 
-/* Triple-color stripe FIFA WC 2026 */
+/* Franja del header: colores propios de la competición activa (--header-stripe,
+   ver aplicarPaletaCompeticion en competiciones.js). Antes de elegir competición
+   cae al tricolor FIFA WC 2026 por defecto. */
 .app-header::after {
   content: '';
   position: absolute;
@@ -78,7 +87,7 @@ body {
   left: 0;
   right: 0;
   height: 3px;
-  background: linear-gradient(90deg, var(--red) 0%, var(--blue) 50%, var(--green) 100%);
+  background: var(--header-stripe, linear-gradient(90deg, var(--accent) 0%, var(--blue) 50%, var(--green) 100%));
 }
 
 .header-inner { min-height: 56px; }
@@ -100,11 +109,6 @@ body {
 /* Variante mínima (selección de competición): solo el toggle de tema */
 [data-header-variant="minimo"] #header-brand { display: none; }
 [data-header-variant="minimo"] .header-inner { justify-content: flex-end; }
-
-/* Variante completa: sin franja tricolor, la marca principal es el wordmark */
-.app-header[data-header-variant="completo"]::after {
-  display: none;
-}
 
 /* ── Bottom Nav ── */
 .bottom-nav {
