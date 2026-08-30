@@ -7,6 +7,12 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <title>Copa Panas</title>
 
+  <link rel="icon" type="image/png" sizes="32x32" href="./assets/branding/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="./assets/branding/favicon-16x16.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="./assets/branding/apple-touch-icon.png">
+  <link rel="manifest" href="./manifest.json">
+  <meta name="theme-color" content="#FAC21E">
+
   <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -23,7 +29,7 @@
         extend: {
           colors: {
             navy:       '#07090f',
-            gold:       '#c9a84c',
+            gold:       '#FAC21E',
             'gold-light':'#e8c96d',
             accent:     '#e0182d',
           },
@@ -43,17 +49,23 @@
 
   <!-- ===== HEADER ===== -->
   <header id="app-header" class="app-header fixed top-0 left-0 right-0 z-40 hidden">
-    <div class="header-inner flex items-center justify-between px-4 py-3">
-      <div class="flex items-center gap-3 flex-1 min-w-0">
-        <div id="header-logo-wrap" class="hidden">
-          <img id="header-logo" src="" alt="Logo" class="w-10 h-10 object-cover rounded-full border-2 border-gold" />
+    <div class="header-inner flex items-center justify-between px-4 py-3 gap-3">
+      <div id="header-brand" class="flex items-center gap-3 min-w-0 flex-1">
+        <div id="header-wordmark-wrap" class="h-8 flex items-center shrink-0">
+          <img id="header-wordmark-dark" src="./assets/branding/wordmark-dark.png"
+               alt="Copa Panas" class="h-full w-auto object-contain">
+          <img id="header-wordmark-light" src="./assets/branding/wordmark-light.png"
+               alt="Copa Panas" class="h-full w-auto object-contain">
+        </div>
+        <div id="header-logo-wrap" class="hidden shrink-0">
+          <img id="header-logo" src="" alt="Logo" class="w-8 h-8 object-cover rounded-full border-2 border-gold">
         </div>
         <div class="min-w-0">
-          <h1 id="header-title" class="font-bebas text-2xl text-gold tracking-wider truncate leading-none">TORNEO FC 26</h1>
+          <h1 id="header-title" class="font-bebas text-lg text-gold tracking-wider truncate leading-none">TORNEO FC 26</h1>
           <p id="header-phase" class="text-xs text-gray-400 leading-none mt-0.5">Configuración</p>
         </div>
       </div>
-      <button id="btn-theme-toggle" class="w-11 h-11 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 transition-colors" aria-label="Cambiar tema">
+      <button id="btn-theme-toggle" class="w-11 h-11 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 transition-colors shrink-0" aria-label="Cambiar tema">
         <i class="fa-solid fa-moon text-gold"></i>
       </button>
     </div>
@@ -67,9 +79,11 @@
     ====================================================== -->
     <section id="screen-competicion" class="screen active px-4 pt-10 pb-6">
       <div class="setup-hero text-center mb-8">
-        <i class="fa-solid fa-trophy text-6xl text-gold drop-shadow-lg mb-4"></i>
-        <h2 class="font-bebas text-5xl text-white tracking-widest leading-none">COPA</h2>
-        <h2 class="font-bebas text-5xl text-gold tracking-widest leading-none">PANAS</h2>
+        <img src="./assets/branding/icon-512.png" alt="" class="w-24 h-24 mx-auto mb-4 drop-shadow-lg" aria-hidden="true">
+        <div class="h-16 flex items-center justify-center">
+          <img id="hero-wordmark-dark" src="./assets/branding/wordmark-dark.png" alt="Copa Panas" class="h-full w-auto object-contain">
+          <img id="hero-wordmark-light" src="./assets/branding/wordmark-light.png" alt="Copa Panas" class="h-full w-auto object-contain">
+        </div>
         <p class="text-gray-400 text-sm mt-3">Elegí la competición para tu torneo</p>
       </div>
       <div id="lista-competiciones" class="flex flex-col gap-3"></div>

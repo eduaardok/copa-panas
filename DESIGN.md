@@ -8,7 +8,7 @@ colors:
   texto-principal: "#f0f3f8"
   texto-secundario: "#6b7a8d"
   azul-setup: "#0052c8"
-  dorado-trofeo: "#c9a84c"
+  dorado-trofeo: "#FAC21E"
   dorado-trofeo-claro: "#e8c96d"
   verde-grupos: "#00a64e"
   rojo-eliminacion: "#e0182d"
@@ -170,7 +170,7 @@ intercambiable.
   volumen sin sombra real.
 
 ### Secondary
-- **Dorado Trofeo** (`#c9a84c`, variante clara `#e8c96d`): el color de
+- **Dorado Trofeo** (`#FAC21E`, variante clara `#e8c96d`): el color de
   logro — líder de tabla, campeón, marcadores de puntaje, badges de
   ranking. Es el único color con `text-shadow`/glow animado (pantalla
   de campeón), reservado para el momento de mayor peso emocional de la

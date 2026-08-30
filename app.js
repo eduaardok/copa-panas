@@ -407,6 +407,7 @@ function mostrarPantalla(nombre) {
   }
   if (screensConHeader.includes(nombre)) {
     header.classList.remove('hidden');
+    header.setAttribute('data-header-variant', nombre === 'competicion' ? 'minimo' : 'completo');
   } else {
     header.classList.add('hidden');
   }

@@ -88,6 +88,24 @@ body {
   box-shadow: 0 2px 12px rgba(0,0,0,0.12);
 }
 
+/* Swap de wordmark por tema */
+#header-wordmark-light { display: none; }
+[data-theme="light"] #header-wordmark-dark { display: none; }
+[data-theme="light"] #header-wordmark-light { display: block; }
+
+#hero-wordmark-light { display: none; }
+[data-theme="light"] #hero-wordmark-dark { display: none; }
+[data-theme="light"] #hero-wordmark-light { display: block; }
+
+/* Variante mínima (selección de competición): solo el toggle de tema */
+[data-header-variant="minimo"] #header-brand { display: none; }
+[data-header-variant="minimo"] .header-inner { justify-content: flex-end; }
+
+/* Variante completa: sin franja tricolor, la marca principal es el wordmark */
+.app-header[data-header-variant="completo"]::after {
+  display: none;
+}
+
 /* ── Bottom Nav ── */
 .bottom-nav {
   background: var(--bg);

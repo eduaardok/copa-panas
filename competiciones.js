@@ -57,7 +57,7 @@ const COMPETICIONES = {
     textos: {
       // Header (app.js actualizarHeader) y pantalla de setup: nombre a mostrar
       // cuando el torneo activo todavía no tiene estado.meta.nombre propio.
-      tituloTorneoDefault: 'TORNEO FC 26',
+      tituloTorneoDefault: 'MUNDIAL',
 
       // Subtítulo de "ASIGNAR EQUIPOS" (index.html:160). {NOMBRE} → nombre de la competición.
       textoAsignarEquipos: 'Elige cómo asignar los equipos de {NOMBRE}',
@@ -106,7 +106,7 @@ const COMPETICIONES = {
 
     // Mismas 6 claves que Mundial, mismo patrón de textos (spec 002 research.md §3).
     textos: {
-      tituloTorneoDefault: 'TORNEO CHAMPIONS',
+      tituloTorneoDefault: 'CHAMPIONS LEAGUE',
       textoAsignarEquipos: 'Elige cómo asignar los clubes de {NOMBRE}',
       tituloSorteoEquipos: 'SORTEANDO CLUBES',
       subtituloSorteoEquipos: 'Asignando clubes de {NOMBRE}...',
