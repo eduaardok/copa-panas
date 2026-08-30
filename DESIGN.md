@@ -12,6 +12,22 @@ colors:
   dorado-trofeo-claro: "#e8c96d"
   verde-grupos: "#00a64e"
   rojo-eliminacion: "#e0182d"
+  blanco-puro: "#ffffff"
+  fondo-superficie-claro: "#f8faff"
+  verde-grupos-claro: "#4dcc88"
+  borde-claro-marcado: "rgba(0,0,0,0.12)"
+  borde-claro-sutil: "rgba(0,0,0,0.07)"
+  borde-claro-medio: "rgba(0,0,0,0.08)"
+  azul-setup-claro: "#5ba0ff"
+  gris-300-claro: "#4a5568"
+  azul-setup-oscuro: "#003d99"
+  verde-grupos-oscuro: "#007a38"
+  rojo-eliminacion-oscuro: "#990010"
+  gris-400-claro: "#5a6577"
+  gris-500-claro: "#718096"
+  gris-600-claro: "#4b5563"
+  dorado-superficie-claro: "#f8f4e8"
+  verde-grupos-accesible: "#038242"
 typography:
   display:
     fontFamily: "'Bebas Neue', cursive"
@@ -37,6 +53,14 @@ typography:
     fontWeight: 700
     lineHeight: 1.3
     letterSpacing: "0.1em"
+  title:
+    fontFamily: "'Bebas Neue', cursive"
+    fontSize: "22px"
+    fontWeight: 700
+    lineHeight: 1
+  scale:
+    icon-sm: "18px"
+    icon-lg: "40px"
 rounded:
   sm: "8px"
   md: "12px"
@@ -44,6 +68,7 @@ rounded:
   xl: "16px"
   pill: "20px"
   full: "50%"
+  sheet: "24px"
 spacing:
   xs: "4px"
   sm: "8px"
@@ -170,6 +195,34 @@ En modo claro, fondo pasa a `#f0f4fa`/`#e2e8f4`/`#ffffff` y el texto
 principal a `#0f1420` — mismo rol, mismo peso visual relativo, luz
 invertida.
 
+### Tokens derivados
+
+- **Paradas oscuras de gradiente** (`azul-setup-oscuro` `#003d99`,
+  `verde-grupos-oscuro` `#007a38`, `rojo-eliminacion-oscuro` `#990010`):
+  parada inicial del gradiente 135deg de cada botón de acción por rol
+  (`.btn-primary`, `.btn-success`, `.btn-sortear-equipos`) — dan volumen
+  sin sombra real, nunca se usan solas fuera de un gradiente.
+- **Variantes brillantes sobre fondo oscuro** (`azul-setup-claro`
+  `#5ba0ff`, `verde-grupos-claro` `#4dcc88`): texto de badge/valor
+  activo cuando el color base (`azul-setup`/`verde-grupos`) no tiene
+  suficiente contraste sobre un fondo ya coloreado tenue (badges de
+  sorteo, contador de clasificados).
+- **Superficies y bordes de modo claro** (`blanco-puro` `#ffffff`,
+  `fondo-superficie-claro` `#f8faff`, `borde-claro-sutil`
+  `rgba(0,0,0,0.07)`, `borde-claro-medio` `rgba(0,0,0,0.08)`,
+  `borde-claro-marcado` `rgba(0,0,0,0.12)`): variantes de fondo/borde
+  del modo claro para inputs, filas y tarjetas — misma jerarquía que
+  `--bg-card`/`--border`, expresada en la luz invertida del tema claro.
+- **Escala de grises de modo claro** (`gris-300-claro` `#4a5568`,
+  `gris-400-claro` `#5a6577`, `gris-500-claro` `#718096`,
+  `gris-600-claro` `#4b5563`): mapea 1:1 a la escala `gray-300/400/500
+  /600` de Tailwind cuando se sobreescribe en modo claro — cuatro pasos
+  de contraste de texto secundario, no intercambiables entre sí.
+- **Dorado Superficie Claro** (`dorado-superficie-claro` `#f8f4e8`):
+  parada final del gradiente de `.campeon-card` en modo claro (blanco →
+  crema dorado) — variante tenue del rol dorado/logro para la única
+  tarjeta que lo usa como fondo en vez de como acento.
+
 ### Named Rules
 **La Regla del Color con Rol.** Ningún color se usa "porque queda
 bien" — azul es siempre acción, dorado es siempre logro, verde es
@@ -200,6 +253,19 @@ depender de tamaño.
   botones, texto de tarjetas.
 - **Label** (700, 10-11px, letter-spacing 0.06-0.1em, uppercase):
   headers de tabla, `form-label`, badges de estado.
+
+Título (`Title`, 700, `22px`, Bebas Neue): valor canónico único para
+puntaje inline (`score-badge`, `bracket-team-score`, `cl-pts`,
+`clasificados-counter-num`) — `score-badge` es el componente de
+referencia del rol.
+
+### Escala de íconos
+
+Los glyphs de Font Awesome (`<i>`) no son tipografía y no siguen los 5
+roles de arriba — tienen su propia escala nombrada (`typography.scale`
+en el frontmatter): `icon-sm` (`18px`, íconos de navegación como
+`.nav-tab i`) e `icon-lg` (`40px`, íconos grandes de estado vacío como
+`.empty-state i`).
 
 ### Named Rules
 **La Regla del Marcador.** Bebas Neue nunca se usa para texto de
@@ -272,9 +338,9 @@ tarjetas de contenido y botones, `16px` en tarjetas contenedoras
 círculo completo (`50%`) en botones circulares (counter, close, sorteo
 bombo) y avatares/logo.
 
-Modales usan esquinas superiores redondeadas únicamente (`24px 24px 0
-0`) — patrón bottom-sheet, reforzando que suben desde el borde inferior
-de la pantalla en vez de aparecer centrados.
+Modales usan esquinas superiores redondeadas únicamente (`sheet`,
+`24px 24px 0 0`) — patrón bottom-sheet, reforzando que suben desde el
+borde inferior de la pantalla en vez de aparecer centrados.
 
 Bordes son casi siempre `1-2px` y translúcidos; no hay bordes gruesos ni
 sólidos de alto contraste salvo en estados de error/foco (donde el
@@ -292,8 +358,10 @@ borde adopta el color semántico completo).
 - **Danger:** fondo tenue rojo (`rgba(224,24,45,0.12)`) + borde rojo
   translúcido — nunca sólido, para no competir visualmente con estados
   de error de formulario.
-- **Success:** gradiente verde `#007a38 → #00a64e`, mismo patrón que
-  primary.
+- **Success:** gradiente verde `#007a38 → #038242` (`verde-grupos-
+  accesible`, no el `#00a64e` puro — el verde base no llega a 4.5:1 de
+  contraste con el texto blanco del botón; este extremo sí, ~4.9:1),
+  mismo patrón que primary.
 - **Active/Press:** `transform: scale(0.97)` + un overlay ripple
   (`::after` blanco 10% que aparece en `:active`) en todas las
   variantes — el único feedback táctil consistente de la app.

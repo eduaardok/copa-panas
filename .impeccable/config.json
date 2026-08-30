@@ -40,10 +40,11 @@
         "rule": "side-tab",
         "value": "*",
         "files": [
-          "styles.css"
+          "styles.css",
+          "index.html"
         ],
         "createdAt": "2026-08-25T07:32:03.023Z",
-        "reason": "stripe tricolor del header (.app-header::after) es la identidad visual central de Mundial 2026 (FR-010), documentado en DESIGN.md como parte del North Star 'la iluminación del estadio'"
+        "reason": "stripe tricolor del header (.app-header::after) es la identidad visual central de Mundial 2026 (FR-010), documentado en DESIGN.md como parte del North Star 'la iluminación del estadio'. El motor de cascada estática atribuye este mismo hallazgo a index.html (line 0) al evaluar la página renderizada completa en vez del archivo de origen (styles.css:73) — verificado en spec 004-deuda-diseno-animaciones research.md; se amplía el scope de archivos para cubrir ambas atribuciones de la misma regla."
       },
       {
         "rule": "design-system-color",
@@ -68,6 +69,33 @@
         "value": "16px",
         "createdAt": "2026-08-25T07:34:15.289Z",
         "reason": "dentro del rango body ya documentado en DESIGN.md (13-16px), y ya usado en font-input/inputs"
+      },
+      {
+        "rule": "cramped-padding",
+        "value": "*",
+        "files": [
+          "index.html"
+        ],
+        "createdAt": "2026-08-29T12:00:00.000Z",
+        "reason": "Revisado en detalle: 5 de los 6 hallazgos originales SÍ se corrigieron en código (padding real agregado a .card-glass.p-3/.p-4, .modal-box.py-6/.py-8, y .campeon-card con compensación de #confetti-canvas — ver styles.css). Queda 1 solo caso genuinamente no corregible: .modal-box en el lado 'bottom' usa padding-bottom: calc(24px + var(--safe-bottom)) (env(), requerido por CLAUDE.md para iOS) — resolveLengthPx() en checks.mjs (línea ~2945) no parsea calc(), devuelve null, y el checker lo trata como sin padding. Verificado leyendo el código fuente del checker, no asumido. No hay forma de expresar un safe-area-inset de forma que el checker lo resuelva."
+      },
+      {
+        "rule": "dark-glow",
+        "value": "*",
+        "files": [
+          "index.html"
+        ],
+        "createdAt": "2026-08-29T12:00:00.000Z",
+        "reason": "No es una limitación técnica del checker (a diferencia de cramped-padding/side-tab) — es un desacuerdo de criterio entre la heurística genérica anti-'AI slop' y el sistema de diseño ya ratificado del proyecto. Los 12 glows (dorado del campeón, azul de botón primario/foco de input, verde de botón success, rojo de sortear-equipos) son exactamente el 'Shadow Vocabulary' de DESIGN.md (Glow Dorado, Glow de Botón Primario, Halo de Foco de Input) — 'corregirlos' significaría aplanar identidad visual ya documentada y aprobada, contradiciendo DESIGN.md y el North Star. Confirmado explícitamente por el usuario en spec 004 tras señalar la coincidencia exacta; no se pudo acotar a selectores puntuales (a diferencia de side-tab) porque dark-glow no está en la lista directValueRules del checker (impeccable-config.mjs) — no tiene valor extraíble por hallazgo, solo admite wildcard por archivo, mismo límite técnico que ya hacía inefectivos los 2 side-tab de valor específico preexistentes."
+      },
+      {
+        "rule": "flat-type-hierarchy",
+        "value": "*",
+        "files": [
+          "index.html"
+        ],
+        "createdAt": "2026-08-29T12:30:00.000Z",
+        "reason": "CORRIGE una excepción anterior con la razón equivocada (decía 'consecuencia intencional de normalizar al ramp' — falso). Causa real, verificada: 26 usos de clases de tamaño de Tailwind (text-5xl/4xl/3xl/2xl/xl) en títulos .font-bebas a lo largo de index.html no tienen font-size en CSS estático — Tailwind las genera en runtime, invisibles para el checker (mismo blind-spot que cramped-padding). El checker solo ve los tamaños chicos (11/13/15/16px, ya en el ramp) y por eso mide el rango como plano; en el navegador real el rango es mucho más amplio (hasta 48px en los títulos hero). Arreglarlo correctamente requiere asignar el rol de DESIGN.md (Headline/Title/Display) a esos 26 usos con CSS estático — trabajo real que extiende el Veredicto #2 más allá de lo ya cerrado, no una corrección de una línea. Explícitamente diferido, no resuelto en esta spec — flat-type-hierarchy tampoco está en directValueRules (mismo límite técnico que dark-glow/cramped-padding), solo admite wildcard."
       }
     ]
   }

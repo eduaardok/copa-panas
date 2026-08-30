@@ -144,11 +144,14 @@ function actualizarRegistroJugadores(jugadoresDelRoster) {
 // ── Toast ────────────────────────────────────────────────────
 
 let _toastTimer = null;
+let _toastLeaveTimer = null;
 function mostrarToast(msg, tipo = 'info') {
   const el = document.getElementById('toast');
   el.textContent = msg;
-  el.className = `toast ${tipo}`;
   clearTimeout(_toastTimer);
+  clearTimeout(_toastLeaveTimer);
+  el.className = `toast ${tipo}`;
+  _toastLeaveTimer = setTimeout(() => { el.classList.add('leaving'); }, 2820);
   _toastTimer = setTimeout(() => { el.className = 'toast hidden'; }, 3000);
 }
 
@@ -184,14 +187,20 @@ function mostrarPantalla(nombre) {
   const nav = document.getElementById('bottom-nav');
   const header = document.getElementById('app-header');
   const screensConNav = ['dashboard', 'fase-grupos', 'eliminacion', 'config', 'clasificados'];
+  // El header (con el toggle de tema) se muestra ya desde la selección de competición, aunque la
+  // barra inferior recién tenga sentido una vez que hay datos de torneo que navegar.
+  const screensConHeader = [...screensConNav, 'competicion', 'setup', 'equipos', 'grupos-config'];
   if (screensConNav.includes(nombre)) {
     nav.classList.remove('hidden');
-    header.classList.remove('hidden');
     actualizarNavTab(nombre === 'fase-grupos' ? 'fase-grupos' :
                      nombre === 'eliminacion' ? 'eliminacion' :
                      nombre === 'config' ? 'config' : 'dashboard');
   } else {
     nav.classList.add('hidden');
+  }
+  if (screensConHeader.includes(nombre)) {
+    header.classList.remove('hidden');
+  } else {
     header.classList.add('hidden');
   }
 
@@ -256,7 +265,7 @@ function inicializarSeleccionCompeticion() {
     btn.style.setProperty('--card-accent', acento);
     btn.innerHTML = `
       <i class="fa-solid fa-trophy text-3xl mb-2" style="color: var(--card-accent)"></i>
-      <span class="font-bebas text-2xl tracking-wider">${escHtml(comp.nombre)}</span>
+      <span class="font-bebas tracking-wider text-center leading-tight" style="font-size: clamp(15px, 5vw, 24px);">${escHtml(comp.nombre)}</span>
     `;
     btn.addEventListener('click', () => elegirCompeticion(comp.id));
     container.appendChild(btn);
@@ -273,6 +282,24 @@ function elegirCompeticion(competicionId) {
   guardar();
   mostrarPantalla('setup');
   inicializarSetup();
+}
+
+// ── Cierre animado de modal (contracts/animation-motion-contract.md) ──
+// Aplica a cualquier .modal-overlay > .modal-box: agrega .closing para
+// disparar la salida simétrica (fadeOut/slideDown) y recién después de
+// esos 180ms aplica .hidden — evita el salto instantáneo que tenían
+// antes todos los cierres de modal.
+function cerrarModalConAnimacion(overlayId) {
+  const overlay = document.getElementById(overlayId);
+  if (!overlay || overlay.classList.contains('hidden')) return;
+  const box = overlay.querySelector('.modal-box');
+  overlay.classList.add('closing');
+  if (box) box.classList.add('closing');
+  setTimeout(() => {
+    overlay.classList.add('hidden');
+    overlay.classList.remove('closing');
+    if (box) box.classList.remove('closing');
+  }, 180);
 }
 
 // ── Modal genérico de confirmación ───────────────────────────
@@ -515,7 +542,7 @@ function toggleImportJugador(nombreNormalizado, row) {
 }
 
 function cerrarModalImportarJugadores() {
-  document.getElementById('modal-importar-jugadores').classList.add('hidden');
+  cerrarModalConAnimacion('modal-importar-jugadores');
 }
 
 function importarJugadoresSeleccionados() {
@@ -893,7 +920,7 @@ function confirmarSorteo(grupos) {
   estado.partidos_grupos = generarCalendarioGrupos(estado.grupos, estado.configFormato.grupos);
   estado.fase = 'fase_grupos';
   guardar();
-  document.getElementById('modal-sorteo').classList.add('hidden');
+  cerrarModalConAnimacion('modal-sorteo');
   mostrarPantalla('dashboard');
   renderizarDashboard();
   renderizarFaseGrupos();
@@ -1027,9 +1054,42 @@ function clasificadosGeneral() {
 
 // ── PANTALLA 2 — FASE DE GRUPOS ──────────────────────────────
 
+// Reordenamiento FLIP (First-Last-Invert-Play) de una tabla de posiciones:
+// captura la posición Y de cada fila (por jugador) antes de re-renderizar, y
+// tras el render aplica un translateY inverso que se anima a 0 — así se ve el
+// movimiento entre posiciones en vez de un salto directo. Filas nuevas (sin
+// posición previa) usan la entrada .fila-nueva en su lugar.
+function capturarPosicionesTabla(tbodySelector) {
+  const posiciones = new Map();
+  document.querySelectorAll(`${tbodySelector} tr[data-jugador-id]`).forEach(tr => {
+    posiciones.set(tr.dataset.jugadorId, tr.getBoundingClientRect().top);
+  });
+  return posiciones;
+}
+
+function animarReordenTabla(tbodySelector, posicionesAntes) {
+  const filas = document.querySelectorAll(`${tbodySelector} tr[data-jugador-id]`);
+  filas.forEach(tr => {
+    const antes = posicionesAntes.get(tr.dataset.jugadorId);
+    if (antes === undefined) {
+      tr.classList.add('fila-nueva');
+      return;
+    }
+    const delta = antes - tr.getBoundingClientRect().top;
+    if (Math.abs(delta) < 1) return;
+    tr.style.transition = 'none';
+    tr.style.transform = `translateY(${delta}px)`;
+    requestAnimationFrame(() => {
+      tr.style.transition = '';
+      tr.style.transform = '';
+    });
+  });
+}
+
 function renderizarFaseGrupos() {
   const tabsEl = document.getElementById('grupos-tabs');
   const contentEl = document.getElementById('grupos-content');
+  const posicionesAntes = capturarPosicionesTabla('#grupos-content .standings-table tbody');
   tabsEl.innerHTML = '';
   contentEl.innerHTML = '';
 
@@ -1067,7 +1127,7 @@ function renderizarFaseGrupos() {
           <tbody>
             ${posiciones.map((s, i) => {
               const j = jugadorPorId(s.id);
-              return `<tr class="${i === 0 ? 'leader' : ''}">
+              return `<tr class="${i === 0 ? 'leader' : ''}" data-jugador-id="${s.id}">
                 <td>
                   <div class="player-name">${escHtml(j?.nombre || '?')}</div>
                   <div class="text-xs text-gray-400">${escHtml(j?.equipo || '')}</div>
@@ -1083,6 +1143,7 @@ function renderizarFaseGrupos() {
     </div>
   `;
   contentEl.insertAdjacentHTML('beforeend', tablaHTML);
+  animarReordenTabla('#grupos-content .standings-table tbody', posicionesAntes);
 
   // Partidos del grupo (separados en Ida/Vuelta cuando el formato lo requiere)
   const partidos = estado.partidos_grupos.filter(p => p.grupoId === grupo.id);
@@ -1345,7 +1406,7 @@ function guardarResultado() {
 }
 
 function cerrarModalResultado() {
-  document.getElementById('modal-resultado').classList.add('hidden');
+  cerrarModalConAnimacion('modal-resultado');
   partidoEditando = null;
 }
 
@@ -2092,12 +2153,12 @@ function vincularEventos() {
 
   // ── MODAL SORTEO ──
   document.getElementById('btn-sorteo-cancelar')?.addEventListener('click', () => {
-    document.getElementById('modal-sorteo').classList.add('hidden');
+    cerrarModalConAnimacion('modal-sorteo');
   });
 
   document.getElementById('modal-sorteo')?.addEventListener('click', e => {
     if (e.target === document.getElementById('modal-sorteo')) {
-      document.getElementById('modal-sorteo').classList.add('hidden');
+      cerrarModalConAnimacion('modal-sorteo');
     }
   });
 
@@ -2145,19 +2206,19 @@ function vincularEventos() {
       });
       _equiposTempSorteados = null;
     }
-    document.getElementById('modal-sorteo-equipos').classList.add('hidden');
+    cerrarModalConAnimacion('modal-sorteo-equipos');
     renderizarAsignacionEquipos();
     mostrarToast('Equipos asignados. Confirma para continuar.', 'success');
   });
 
   document.getElementById('btn-sorteo-eq-cancelar')?.addEventListener('click', () => {
-    document.getElementById('modal-sorteo-equipos').classList.add('hidden');
+    cerrarModalConAnimacion('modal-sorteo-equipos');
     _equiposTempSorteados = null;
   });
 
   document.getElementById('modal-sorteo-equipos')?.addEventListener('click', e => {
     if (e.target === document.getElementById('modal-sorteo-equipos')) {
-      document.getElementById('modal-sorteo-equipos').classList.add('hidden');
+      cerrarModalConAnimacion('modal-sorteo-equipos');
       _equiposTempSorteados = null;
     }
   });
@@ -2235,18 +2296,18 @@ function vincularEventos() {
 
   // ── MODAL CONFIRM ──
   document.getElementById('btn-confirm-cancel')?.addEventListener('click', () => {
-    document.getElementById('modal-confirm').classList.add('hidden');
+    cerrarModalConAnimacion('modal-confirm');
     _confirmCallback = null;
   });
 
   document.getElementById('btn-confirm-ok')?.addEventListener('click', () => {
-    document.getElementById('modal-confirm').classList.add('hidden');
+    cerrarModalConAnimacion('modal-confirm');
     if (_confirmCallback) { _confirmCallback(); _confirmCallback = null; }
   });
 
   document.getElementById('modal-confirm')?.addEventListener('click', e => {
     if (e.target === document.getElementById('modal-confirm')) {
-      document.getElementById('modal-confirm').classList.add('hidden');
+      cerrarModalConAnimacion('modal-confirm');
       _confirmCallback = null;
     }
   });
