@@ -71,16 +71,18 @@ fase. Phase 5 (US4) puede avanzar en paralelo sin esperarla.
   cercana): contenedor de filas (`#lista-admin-registro`) + título + botón de cierre
   **Hecho**: `#modal-admin-registro` agregado después de `#modal-importar-jugadores`, mismo
   esqueleto (overlay/box, título, botón X, contenedor `#lista-admin-registro`).
-- [X] T004 [P] En `app.js`, implementar `abrirModalAdminRegistro()`: lee
-  `cargarJugadoresConocidos()`, renderiza una fila por entrada en `#lista-admin-registro` con el
-  nombre de presentación (`entrada.nombre`) y contenedores vacíos para acciones (editar/borrar,
-  US1/US2) y detalle de historial (expandir, US3) que las siguientes fases completan; si el
-  registro está vacío, muestra el mismo patrón de estado vacío ya usado por
+- [X] T004 [P] En `app.js`, implementar `abrirModalAdminRegistro()` y su función auxiliar
+  `crearFilaAdminRegistro(entrada)`: lee `cargarJugadoresConocidos()`, renderiza una fila por
+  entrada en `#lista-admin-registro` con el nombre de presentación (`entrada.nombre`) y los tres
+  botones de acción por fila ya completos — Editar (US1), Borrar (US2), Expandir historial (US3) —
+  como elementos hermanos e independientes dentro del mismo contenedor de acciones, cada uno con su
+  propio listener; si el registro está vacío, muestra el mismo patrón de estado vacío ya usado por
   `abrirModalImportarJugadores()` (app.js:517, "No hay jugadores nuevos para importar") adaptado al
-  contexto de administración (contracts/admin-registro-contract.md, Garantía 2). Depende de T003
-  **Hecho**: `abrirModalAdminRegistro()` + `crearFilaAdminRegistro()` implementadas juntas (mismo
-  pase de implementación cubre T004/T008/T014/T020 — ver nota de desvío en Notes). Estado vacío
-  verificado.
+  contexto de administración (contracts/admin-registro-contract.md, Garantía 2). Depende de T003.
+  T008/T014/T020 no son un paso posterior de construcción sobre esta fila — documentan la garantía
+  y el listener de cada botón que T004 ya deja instalado (ver Notes).
+  **Hecho**: `abrirModalAdminRegistro()` + `crearFilaAdminRegistro()` implementadas juntas, con los
+  tres botones completos desde el primer pase. Estado vacío verificado.
 - [X] T005 [P] En `app.js`, implementar `cerrarModalAdminRegistro()`: mismo mecanismo que
   `cerrarModalImportarJugadores()` (`cerrarModalConAnimacion('modal-admin-registro')`). Depende de
   T003
@@ -119,9 +121,10 @@ Escenario 1).
 
 ### Implementation for User Story 1
 
-- [X] T008 [US1] En `app.js`, en la función de renderizado de fila usada por
-  `abrirModalAdminRegistro()` (T004), agregar el botón "Editar" por fila con
-  `data-nombre-normalizado` y su listener → `iniciarEdicionNombreRegistro(nombreNormalizado)`
+- [X] T008 [US1] Garantía: el botón "Editar" por fila (ya construido en `crearFilaAdminRegistro()`,
+  T004, con `data-nombre-normalizado` en la fila y listener propio) debe disparar
+  `iniciarEdicionNombreRegistro(nombreNormalizado)`. No es un paso de implementación separado de
+  T004 — documenta qué garantiza ese botón específico y a qué user story corresponde (US1).
   **Hecho**: botón "Editar" en `crearFilaAdminRegistro()`, con listener a
   `iniciarEdicionNombreRegistro`.
 - [X] T009 [US1] En `app.js`, implementar `iniciarEdicionNombreRegistro(nombreNormalizado)`:
@@ -172,16 +175,18 @@ un torneo nuevo, mientras el resto del registro y cualquier torneo activo perman
 
 ### Implementation for User Story 2
 
-- [X] T014 [US2] En `app.js`, en el contenedor de acciones por fila ya definido por T004 (mismo
-  contenedor donde T008 agrega "Editar", como slot hermano independiente), agregar el botón
-  "Borrar" con su listener → `borrarEntradaRegistro(nombreNormalizado)`. Depende de T004
+- [X] T014 [US2] Garantía: el botón "Borrar" por fila (ya construido en `crearFilaAdminRegistro()`,
+  T004, como slot hermano independiente del botón "Editar" de US1) debe disparar
+  `borrarEntradaRegistro(nombreNormalizado)`. No es un paso de implementación separado de T004 —
+  documenta qué garantiza ese botón específico y a qué user story corresponde (US2).
   **Hecho**: botón "Borrar" en `crearFilaAdminRegistro()`, con listener a `borrarEntradaRegistro`.
 - [X] T015 [US2] En `app.js`, implementar `borrarEntradaRegistro(nombreNormalizado)`: llama a
   `mostrarConfirm(titulo, msg, callback)` (genérico ya existente, app.js:308) con un mensaje
   específico para esta entrada; en el callback, filtra esa entrada de `cargarJugadoresConocidos()`,
   llama `guardarJugadoresConocidos(registro)`, y vuelve a renderizar la lista completa del modal
   (`abrirModalAdminRegistro()` o un refresco equivalente) — nunca borra sin pasar por la
-  confirmación (contracts/admin-registro-contract.md, Garantía 5). Depende de T014
+  confirmación (contracts/admin-registro-contract.md, Garantía 5). Depende de T004 (botón ya
+  instalado) y de la garantía documentada en T014.
   **Hecho** según lo descrito.
 - [X] T016 [US2] Ejecutar quickstart.md Escenario 2 (borrar sin afectar torneo activo, desaparece
   de la opción de importar) contra la app real, en mobile y desktop, y corregir cualquier desvío
@@ -266,10 +271,11 @@ correctamente (quickstart.md Escenario 4).
 
 ### Implementation for User Story 3
 
-- [X] T020 [US3] En `app.js`, en el contenedor de acciones por fila ya definido por T004 (mismo
-  contenedor donde T008/T014 agregan "Editar"/"Borrar", como slot hermano independiente), agregar
-  el botón/ícono "Expandir historial" con su listener →
-  `toggleHistorialAdminRegistro(nombreNormalizado)`. Depende de T004
+- [X] T020 [US3] Garantía: el botón/ícono "Expandir historial" por fila (ya construido en
+  `crearFilaAdminRegistro()`, T004, como slot hermano independiente de "Editar"/"Borrar") debe
+  disparar `toggleHistorialAdminRegistro(nombreNormalizado)`. No es un paso de implementación
+  separado de T004 — documenta qué garantiza ese botón específico y a qué user story corresponde
+  (US3).
   **Hecho**: botón "Expandir historial" (chevron) en `crearFilaAdminRegistro()`.
 - [X] T021 [US3] En `app.js`, implementar `toggleHistorialAdminRegistro(nombreNormalizado)`:
   expande/colapsa un bloque de detalle debajo de la fila (mismo mecanismo `classList.toggle
@@ -455,16 +461,16 @@ puede empezar cuando el modal (Foundational) y los datos de historial (US4) ya e
   `confirmarEquipos()`, no en `confirmarJugadores()`) es fácil de pasar por alto si se sigue el
   patrón de spec 003 sin leer research.md primero — verificado explícitamente en T019 que ningún
   jugador tiene entrada de historial antes de confirmar equipos
-- **Desvío respecto a la redacción original de T004/T008/T014/T020**: la spec describía contenedores
-  vacíos poblados incrementalmente por cada user story. En la práctica, T004 implementó
-  `crearFilaAdminRegistro()` con los tres botones (editar/borrar/expandir) ya completos en un solo
-  pase, porque todas las tareas de esta spec se implementaron en la misma sesión en vez de por
-  personas/fases separadas en el tiempo. El resultado es funcionalmente equivalente (los tres
-  botones son elementos hermanos independientes, ninguno edita código que otro escribió) — ver
-  hallazgo F1 de `/speckit-analyze`.
-- **Hallazgo no anticipado por los contracts, corregido en T016**: `mostrarConfirm()` nunca se
-  había invocado antes desde dentro de otro modal ya abierto; `#modal-admin-registro` (posterior en
-  el DOM, mismo `z-index: 60`) tapaba y bloqueaba clics sobre `#modal-confirm`. Fix:
-  `#modal-confirm { z-index: 70; }` — ver hallazgo F2 de `/speckit-analyze`.
+- **F1 de `/speckit-analyze` (resuelto)**: la redacción original de T004/T008/T014/T020 describía
+  contenedores vacíos poblados incrementalmente por cada user story. T004/T008/T014/T020 ya se
+  reescribieron para reflejar lo implementado: T004 (`crearFilaAdminRegistro()`) construye los tres
+  botones de acción (editar/borrar/expandir) completos en un solo pase, como elementos hermanos e
+  independientes; T008/T014/T020 documentan la garantía y el listener de cada botón (a qué user
+  story corresponde), no un paso de construcción posterior.
+- **F2 de `/speckit-analyze` (resuelto)**: `mostrarConfirm()` nunca se había invocado antes desde
+  dentro de otro modal ya abierto; `#modal-admin-registro` (posterior en el DOM, mismo
+  `z-index: 60`) tapaba y bloqueaba clics sobre `#modal-confirm`. Fix aplicado en T016:
+  `#modal-confirm { z-index: 70; }` — documentado como garantía explícita en
+  `contracts/admin-registro-contract.md` (Garantía 5a).
 - Confirmar después de cada tarea o grupo lógico de tareas
 - Detenerse en cada checkpoint para validar la user story de forma independiente

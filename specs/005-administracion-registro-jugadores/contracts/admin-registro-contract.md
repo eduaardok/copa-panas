@@ -42,6 +42,28 @@ ninguna otra entrada del registro cambia, (c) si el jugador borrado está en el 
 activo, ese roster no cambia — ni el nombre, ni el equipo, ni las estadísticas del jugador dentro
 del torneo se ven afectados.
 
+## Garantía 5a — Un modal-confirm invocado desde otro modal ya abierto queda por encima
+
+Regla general, no específica de esta pantalla: cualquier modal que dispare `mostrarConfirm(...)`
+(el genérico ya existente, `app.js:308`) desde DENTRO de otro modal ya abierto — como hace
+`borrarEntradaRegistro` desde `#modal-admin-registro` (Garantía 5) — debe garantizar que el diálogo
+de confirmación quede visualmente por encima del modal de origen y reciba los clics del usuario, no
+tapado ni interceptado por él.
+
+**Motivo**: hasta esta spec, `mostrarConfirm()` solo se invocaba desde pantallas de router (ej.
+"Reiniciar torneo" desde `screen-config`, specs 001-004), nunca desde dentro de otro
+`modal-overlay` ya visible. `#modal-admin-registro` es la primera vez que eso ocurre. Como todos
+los `.modal-overlay` compartían el mismo `z-index: 60`, el modal de origen — por ser posterior en
+el DOM — tapaba y bloqueaba los clics sobre `#modal-confirm` (encontrado con Playwright durante la
+validación de borrado, spec.md User Story 2).
+
+**Implementación concreta de esta garantía**: `#modal-confirm { z-index: 70; }` en `styles.css`,
+por encima del `z-index: 60` de cualquier otro `.modal-overlay`. Al ser una regla sobre el propio
+`#modal-confirm` (no sobre `#modal-admin-registro`), la garantía se cumple automáticamente para
+cualquier modal futuro que invoque `mostrarConfirm()` desde dentro de sí mismo, sin necesitar un
+ajuste de z-index propio por cada modal nuevo — referencia directa para una spec futura que
+necesite el mismo patrón.
+
 ## Garantía 6 — Historial visible es de solo lectura
 
 El bloque de historial expandido por `toggleHistorialAdminRegistro` no contiene ningún control de
