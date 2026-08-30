@@ -466,6 +466,15 @@
         </button>
       </div>
 
+      <!-- Registro de jugadores (spec 005) -->
+      <div class="card-glass p-4 mb-5">
+        <p class="font-medium text-white mb-1">Registro de jugadores</p>
+        <p class="text-xs text-gray-400 mb-3">Ver, corregir o eliminar jugadores guardados entre torneos</p>
+        <button id="btn-admin-registro" class="btn-secondary w-full">
+          <i class="fa-solid fa-users-gear mr-2"></i>Administrar registro
+        </button>
+      </div>
+
       <!-- Reiniciar -->
       <div class="card-glass p-4 border border-red-500/30">
         <p class="font-medium text-red-400 mb-1">Zona de peligro</p>
@@ -609,6 +618,19 @@
       <button id="btn-confirmar-import-jugadores" class="btn-primary w-full">
         <i class="fa-solid fa-check mr-2"></i>Agregar seleccionados
       </button>
+    </div>
+  </div>
+
+  <!-- ===== MODAL ADMINISTRAR REGISTRO (spec 005) ===== -->
+  <div id="modal-admin-registro" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-label="Administrar registro de jugadores">
+    <div class="modal-box px-6 py-6">
+      <div class="flex items-center justify-between mb-5">
+        <h3 class="font-bebas text-xl text-gold tracking-wider">REGISTRO DE JUGADORES</h3>
+        <button id="btn-close-admin-registro" class="modal-close-btn" aria-label="Cerrar">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+      <div id="lista-admin-registro" class="space-y-1 mb-2 max-h-96 overflow-y-auto scrollbar-hide"></div>
     </div>
   </div>
 

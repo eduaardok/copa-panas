@@ -141,6 +141,213 @@ function actualizarRegistroJugadores(jugadoresDelRoster) {
   guardarJugadoresConocidos(registro);
 }
 
+// ── Historial de equipos por jugador (spec 005) ───────────────
+// Se agrega en confirmarEquipos(), NO en confirmarJugadores() — recién ahí
+// estado.jugadores[i].equipo está definitivamente asignado (research.md §2).
+
+function agregarHistorialEquipos(jugadoresDelRoster, nombreCompeticion) {
+  const registro = cargarJugadoresConocidos();
+  const fecha = new Date().toISOString();
+  jugadoresDelRoster.forEach(jugador => {
+    const nombreNormalizado = normalizarNombreJugador(jugador.nombre);
+    const entrada = registro.find(j => j.nombreNormalizado === nombreNormalizado);
+    if (!entrada) return; // defensivo — ya debería existir desde confirmarJugadores()
+    if (!Array.isArray(entrada.historial)) entrada.historial = [];
+    entrada.historial.push({ equipo: jugador.equipo, competicion: nombreCompeticion, fecha });
+  });
+  guardarJugadoresConocidos(registro);
+}
+
+// ── Administración del registro de jugadores (spec 005) ───────
+// Modal accesible desde Config, independiente de si hay torneo activo.
+
+function filaAdminRegistro(nombreNormalizado) {
+  return Array.from(document.querySelectorAll('#lista-admin-registro .admin-registro-row'))
+    .find(row => row.dataset.nombreNormalizado === nombreNormalizado) || null;
+}
+
+function formatearFechaHistorial(fechaISO) {
+  try {
+    return new Date(fechaISO).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  } catch (e) {
+    return '';
+  }
+}
+
+function crearFilaAdminRegistro(entrada) {
+  const row = document.createElement('div');
+  row.className = 'admin-registro-row';
+  row.dataset.nombreNormalizado = entrada.nombreNormalizado;
+  row.innerHTML = `
+    <div class="admin-registro-main">
+      <span class="admin-registro-nombre">${escHtml(entrada.nombre)}</span>
+      <div class="admin-registro-acciones">
+        <button class="admin-registro-btn admin-registro-btn-historial" type="button" aria-label="Ver historial de equipos">
+          <i class="fa-solid fa-chevron-down"></i>
+        </button>
+        <button class="admin-registro-btn admin-registro-btn-editar" type="button" aria-label="Editar nombre">
+          <i class="fa-solid fa-pen"></i>
+        </button>
+        <button class="admin-registro-btn admin-registro-btn-borrar" type="button" aria-label="Borrar jugador">
+          <i class="fa-solid fa-trash"></i>
+        </button>
+      </div>
+    </div>
+    <div class="admin-registro-historial hidden"></div>
+  `;
+
+  row.querySelector('.admin-registro-btn-historial').addEventListener('click', () => toggleHistorialAdminRegistro(entrada.nombreNormalizado));
+  row.querySelector('.admin-registro-btn-editar').addEventListener('click', () => iniciarEdicionNombreRegistro(entrada.nombreNormalizado));
+  row.querySelector('.admin-registro-btn-borrar').addEventListener('click', () => borrarEntradaRegistro(entrada.nombreNormalizado));
+
+  return row;
+}
+
+function abrirModalAdminRegistro() {
+  const cont = document.getElementById('lista-admin-registro');
+  cont.innerHTML = '';
+  const registro = cargarJugadoresConocidos();
+
+  if (registro.length === 0) {
+    cont.innerHTML = '<p class="text-sm text-center py-4" style="color:var(--gray-text)">Todavía no hay jugadores en el registro.</p>';
+  } else {
+    registro.forEach(entrada => cont.appendChild(crearFilaAdminRegistro(entrada)));
+  }
+
+  document.getElementById('modal-admin-registro').classList.remove('hidden');
+}
+
+function cerrarModalAdminRegistro() {
+  cerrarModalConAnimacion('modal-admin-registro');
+}
+
+// ── Edición de nombre (US1) ────────────────────────────────────
+
+function iniciarEdicionNombreRegistro(nombreNormalizado) {
+  const row = filaAdminRegistro(nombreNormalizado);
+  if (!row) return;
+  const registro = cargarJugadoresConocidos();
+  const entrada = registro.find(j => j.nombreNormalizado === nombreNormalizado);
+  if (!entrada) return;
+
+  const main = row.querySelector('.admin-registro-main');
+  main.innerHTML = `
+    <div class="admin-registro-edit-wrap">
+      <input type="text" class="admin-registro-input" maxlength="20" value="${escHtml(entrada.nombre)}" autocomplete="off" />
+      <p class="admin-registro-edit-error hidden"></p>
+    </div>
+    <div class="admin-registro-acciones">
+      <button class="admin-registro-btn admin-registro-btn-guardar" type="button" aria-label="Guardar nombre">
+        <i class="fa-solid fa-check"></i>
+      </button>
+      <button class="admin-registro-btn admin-registro-btn-cancelar" type="button" aria-label="Cancelar edición">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+  `;
+
+  const input = main.querySelector('.admin-registro-input');
+  main.querySelector('.admin-registro-btn-guardar').addEventListener('click', () => guardarEdicionNombreRegistro(nombreNormalizado, input));
+  main.querySelector('.admin-registro-btn-cancelar').addEventListener('click', () => cancelarEdicionNombreRegistro(nombreNormalizado));
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); guardarEdicionNombreRegistro(nombreNormalizado, input); }
+    else if (e.key === 'Escape') { e.preventDefault(); cancelarEdicionNombreRegistro(nombreNormalizado); }
+  });
+  input.focus();
+  input.select();
+}
+
+function guardarEdicionNombreRegistro(nombreNormalizado, inputEl) {
+  const row = filaAdminRegistro(nombreNormalizado);
+  if (!row) return;
+  const errorEl = row.querySelector('.admin-registro-edit-error');
+  const mostrarError = msg => {
+    errorEl.textContent = msg;
+    errorEl.classList.remove('hidden');
+    inputEl.classList.add('error');
+  };
+
+  const valor = inputEl.value.trim();
+  if (!valor) { mostrarError('El nombre no puede estar vacío'); return; }
+
+  const nuevoNormalizado = normalizarNombreJugador(valor);
+  const registro = cargarJugadoresConocidos();
+  const colision = registro.find(j => j.nombreNormalizado === nuevoNormalizado && j.nombreNormalizado !== nombreNormalizado);
+  if (colision) { mostrarError(`Ya existe un jugador registrado como "${colision.nombre}"`); return; }
+
+  const entrada = registro.find(j => j.nombreNormalizado === nombreNormalizado);
+  if (!entrada) { cerrarModalAdminRegistro(); return; }
+
+  entrada.nombre = valor;
+  entrada.nombreNormalizado = nuevoNormalizado;
+  guardarJugadoresConocidos(registro);
+  row.replaceWith(crearFilaAdminRegistro(entrada));
+  mostrarToast('Nombre actualizado', 'success');
+}
+
+function cancelarEdicionNombreRegistro(nombreNormalizado) {
+  const row = filaAdminRegistro(nombreNormalizado);
+  const registro = cargarJugadoresConocidos();
+  const entrada = registro.find(j => j.nombreNormalizado === nombreNormalizado);
+  if (!row || !entrada) { abrirModalAdminRegistro(); return; }
+  row.replaceWith(crearFilaAdminRegistro(entrada));
+}
+
+// ── Borrado de entrada (US2) ───────────────────────────────────
+
+function borrarEntradaRegistro(nombreNormalizado) {
+  const registro = cargarJugadoresConocidos();
+  const entrada = registro.find(j => j.nombreNormalizado === nombreNormalizado);
+  const nombre = entrada ? entrada.nombre : 'este jugador';
+
+  mostrarConfirm(
+    '¿BORRAR JUGADOR?',
+    `Se eliminará "${nombre}" del registro. Esta acción no se puede deshacer.`,
+    () => {
+      const actualizado = cargarJugadoresConocidos().filter(j => j.nombreNormalizado !== nombreNormalizado);
+      guardarJugadoresConocidos(actualizado);
+      abrirModalAdminRegistro();
+      mostrarToast('Jugador eliminado del registro', 'success');
+    }
+  );
+}
+
+// ── Ver historial de equipos (US3) ──────────────────────────────
+
+function toggleHistorialAdminRegistro(nombreNormalizado) {
+  const row = filaAdminRegistro(nombreNormalizado);
+  if (!row) return;
+  const detalle = row.querySelector('.admin-registro-historial');
+  const btn = row.querySelector('.admin-registro-btn-historial');
+  const abierto = !detalle.classList.contains('hidden');
+
+  if (abierto) {
+    detalle.classList.add('hidden');
+    btn?.classList.remove('expanded');
+    return;
+  }
+
+  const registro = cargarJugadoresConocidos();
+  const entrada = registro.find(j => j.nombreNormalizado === nombreNormalizado);
+  const historial = (entrada && entrada.historial) || [];
+  const ordenado = [...historial].sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+
+  if (ordenado.length === 0) {
+    detalle.innerHTML = '<p class="admin-registro-historial-vacio">Todavía no jugó ningún torneo con historial registrado.</p>';
+  } else {
+    detalle.innerHTML = ordenado.map(h => `
+      <div class="admin-registro-historial-item">
+        <span class="admin-registro-historial-equipo"><i class="fa-solid fa-shield-halved mr-1"></i>${escHtml(h.equipo)}</span>
+        <span class="admin-registro-historial-competicion">${escHtml(h.competicion)}</span>
+        <span class="admin-registro-historial-fecha">${formatearFechaHistorial(h.fecha)}</span>
+      </div>
+    `).join('');
+  }
+
+  detalle.classList.remove('hidden');
+  btn?.classList.add('expanded');
+}
+
 // ── Toast ────────────────────────────────────────────────────
 
 let _toastTimer = null;
@@ -743,6 +950,7 @@ function confirmarEquipos() {
 
   estado.fase = 'grupos_config';
   guardar();
+  agregarHistorialEquipos(estado.jugadores, COMPETICIONES[estado.competicion].nombre);
   inicializarGruposConfig();
   mostrarPantalla('grupos-config');
 }
@@ -2281,6 +2489,13 @@ function vincularEventos() {
   });
 
   document.getElementById('btn-compartir')?.addEventListener('click', copiarResumen);
+
+  // Administración del registro de jugadores (spec 005)
+  document.getElementById('btn-admin-registro')?.addEventListener('click', abrirModalAdminRegistro);
+  document.getElementById('btn-close-admin-registro')?.addEventListener('click', cerrarModalAdminRegistro);
+  document.getElementById('modal-admin-registro')?.addEventListener('click', e => {
+    if (e.target === document.getElementById('modal-admin-registro')) cerrarModalAdminRegistro();
+  });
 
   document.getElementById('btn-reiniciar')?.addEventListener('click', () => {
     mostrarConfirm(

@@ -901,6 +901,129 @@ body {
   display: none;
 }
 
+/* ── Administración del registro de jugadores (spec 005) ── */
+.admin-registro-row {
+  border-bottom: 1px solid var(--border);
+  padding: 8px 4px;
+}
+.admin-registro-row:last-child { border-bottom: none; }
+
+.admin-registro-main {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+}
+
+.admin-registro-nombre {
+  flex: 1;
+  min-width: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--white);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.admin-registro-acciones {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.admin-registro-btn {
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
+  border-radius: 8px;
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--gray-text);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 150ms ease, color 150ms ease, transform 200ms ease;
+  -webkit-tap-highlight-color: transparent;
+}
+.admin-registro-btn:active { transform: scale(0.93); }
+.admin-registro-btn-editar:active { color: var(--blue); border-color: color-mix(in srgb, var(--blue) 40%, transparent); }
+.admin-registro-btn-borrar:active { color: var(--red); border-color: color-mix(in srgb, var(--red) 40%, transparent); }
+.admin-registro-btn-guardar { color: var(--green); border-color: color-mix(in srgb, var(--green) 40%, transparent); }
+.admin-registro-btn-historial.expanded { color: var(--gold); border-color: color-mix(in srgb, var(--gold) 40%, transparent); transform: rotate(180deg); }
+
+[data-theme="light"] .admin-registro-nombre { color: #0f1420; }
+[data-theme="light"] .admin-registro-btn { border-color: rgba(0,0,0,0.12); }
+
+/* Fila en modo edición (US1) */
+.admin-registro-edit-wrap { flex: 1; min-width: 0; }
+
+.admin-registro-input {
+  width: 100%;
+  background: rgba(255,255,255,0.04);
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 13px;
+  font-family: 'Inter', sans-serif;
+  color: var(--white);
+  outline: none;
+  transition: border-color 200ms ease, box-shadow 200ms ease;
+}
+.admin-registro-input:focus { border-color: var(--blue); box-shadow: 0 0 0 3px color-mix(in srgb, var(--blue) 15%, transparent); }
+.admin-registro-input.error { border-color: var(--red); }
+
+[data-theme="light"] .admin-registro-input {
+  background: #f8faff;
+  border-color: rgba(0,0,0,0.1);
+  color: #0f1420;
+}
+
+.admin-registro-edit-error {
+  font-size: 11px;
+  color: var(--red);
+  margin-top: 3px;
+  padding-left: 2px;
+}
+.admin-registro-edit-error.hidden { display: none; }
+
+/* Historial de equipos expandible (US3) — la transición de altura respeta
+   prefers-reduced-motion vía la regla global de abajo, no necesita una
+   excepción propia. */
+.admin-registro-historial {
+  margin-top: 8px;
+  padding: 8px 10px;
+  background: rgba(255,255,255,0.03);
+  border-radius: 8px;
+  border: 1px solid var(--border);
+}
+.admin-registro-historial.hidden { display: none; }
+
+.admin-registro-historial-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 11px;
+}
+.admin-registro-historial-item:last-child { border-bottom: none; }
+
+.admin-registro-historial-equipo { color: var(--gold); font-weight: 600; flex-shrink: 0; }
+.admin-registro-historial-competicion { color: var(--gray-text); flex: 1; text-align: center; }
+.admin-registro-historial-fecha { color: var(--gray-text); flex-shrink: 0; font-size: 11px; }
+
+.admin-registro-historial-vacio {
+  font-size: 11px;
+  color: var(--gray-text);
+  text-align: center;
+  padding: 6px 0;
+}
+
 /* ── Cruce setup ── */
 .cruce-row {
   background: rgba(255,255,255,0.03);
@@ -1128,6 +1251,12 @@ body {
   justify-content: center;
   animation: fadeIn 200ms var(--ease-entrada);
 }
+
+/* modal-confirm es el genérico de confirmación (spec 005 lo invoca por
+   primera vez desde DENTRO de otro modal ya abierto, admin-registro) —
+   necesita quedar siempre por encima de cualquier otro modal-overlay,
+   no solo del contenido de pantalla. */
+#modal-confirm { z-index: 70; }
 
 .modal-overlay.hidden { display: none; }
 
