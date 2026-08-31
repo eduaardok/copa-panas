@@ -643,9 +643,19 @@ function renderizarListaJugadores() {
 
 function validarJugadores() {
   const inputs = document.querySelectorAll('#lista-jugadores .jugador-input');
-  const nombres = [];
   let valido = true;
 
+  // Primera pasada: contar ocurrencias de cada nombre normalizado (solo no vacíos), para poder
+  // marcar TODAS las instancias de un duplicado y no solo la que aparece después.
+  const conteoNombres = new Map();
+  inputs.forEach(inp => {
+    const val = inp.value.trim();
+    if (!val) return;
+    const normalizado = normalizarNombreJugador(inp.value);
+    conteoNombres.set(normalizado, (conteoNombres.get(normalizado) || 0) + 1);
+  });
+
+  // Segunda pasada: marcar vacíos y duplicados.
   inputs.forEach(inp => {
     const val = inp.value.trim();
     const normalizado = normalizarNombreJugador(inp.value);
@@ -653,11 +663,10 @@ function validarJugadores() {
     if (!val) {
       inp.classList.add('error');
       valido = false;
-    } else if (nombres.includes(normalizado)) {
+    } else if (conteoNombres.get(normalizado) > 1) {
       inp.classList.add('error');
       valido = false;
     }
-    nombres.push(normalizado);
   });
 
   document.getElementById('btn-confirmar-jugadores').disabled = !valido;
@@ -1888,9 +1897,10 @@ function renderizarEliminacion() {
 
   const rondas = [...new Set(estado.partidos_eliminacion.map(p => p.ronda))].sort((a, b) => a - b);
   const totalJugadores = estado.clasificados.length || 2;
+  const profundidadBracket = Math.ceil(Math.log2(totalJugadores));
 
   rondas.forEach(ronda => {
-    const n = Math.pow(2, rondas.length - ronda);
+    const n = Math.pow(2, profundidadBracket - ronda);
     const nombreRonda = nombreDeRonda(n) || `Ronda ${ronda + 1}`;
     const tab = document.createElement('button');
     tab.className = `ronda-tab ${ronda === rondaActiva ? 'active' : ''}`;
@@ -1900,7 +1910,7 @@ function renderizarEliminacion() {
   });
 
   const partidosRonda = estado.partidos_eliminacion.filter(p => p.ronda === rondaActiva);
-  const n = Math.pow(2, rondas.length - rondaActiva);
+  const n = Math.pow(2, profundidadBracket - rondaActiva);
   const nombreRonda = nombreDeRonda(n) || `Ronda ${rondaActiva + 1}`;
 
   container.innerHTML = `<p class="bracket-phase-label">${escHtml(nombreRonda)}</p>`;
@@ -2034,9 +2044,10 @@ function renderizarDashboard() {
     llaveDiv.appendChild(titulo);
 
     const rondas = [...new Set(estado.partidos_eliminacion.map(p => p.ronda))].sort((a, b) => a - b);
+    const profundidadBracket = Math.ceil(Math.log2(estado.clasificados.length || 2));
     rondas.forEach(ronda => {
       const partidos = estado.partidos_eliminacion.filter(p => p.ronda === ronda);
-      const totalEq = Math.pow(2, rondas.length - ronda);
+      const totalEq = Math.pow(2, profundidadBracket - ronda);
       const nombreRonda = nombreDeRonda(totalEq) || `Ronda ${ronda + 1}`;
       const seccion = document.createElement('div');
       seccion.className = 'mb-4';
@@ -2559,3 +2570,11 @@ function vincularEventos() {
 // ── ARRANQUE ─────────────────────────────────────────────────
 
 document.addEventListener('DOMContentLoaded', inicializar);
+
+// ── SERVICE WORKER (offline) ──────────────────────────────────
+// Solo bajo http(s): file:// debe seguir funcionando exactamente igual, sin intentos de
+// registro ni errores en consola (CLAUDE.md Principio I).
+
+if ((location.protocol === 'http:' || location.protocol === 'https:') && 'serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./sw.js');
+}

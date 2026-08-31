@@ -26,25 +26,13 @@
       },
       {
         "rule": "side-tab",
-        "value": "border-left: 3px solid var(--gold)",
-        "createdAt": "2026-08-25T07:32:02.734Z",
-        "reason": "DESIGN.md (Cards/Containers, ya comiteado antes de esta sesión) documenta explícitamente este borde como el indicador de estado líder/completado del sistema — no es drift, es la Regla nombrada 'borde de color sólido a la izquierda marca estado completado/líder'"
-      },
-      {
-        "rule": "side-tab",
-        "value": "border-left: 3px solid var(--green)",
-        "createdAt": "2026-08-25T07:32:02.890Z",
-        "reason": "mismo patrón documentado en DESIGN.md (match-card.completed), aplicado a fase de grupos por rol de color verde=grupos"
-      },
-      {
-        "rule": "side-tab",
         "value": "*",
         "files": [
           "styles.css",
           "index.html"
         ],
         "createdAt": "2026-08-25T07:32:03.023Z",
-        "reason": "stripe tricolor del header (.app-header::after) es la identidad visual central de Mundial 2026 (FR-010), documentado en DESIGN.md como parte del North Star 'la iluminación del estadio'. El motor de cascada estática atribuye este mismo hallazgo a index.html (line 0) al evaluar la página renderizada completa en vez del archivo de origen (styles.css:73) — verificado en spec 004-deuda-diseno-animaciones research.md; se amplía el scope de archivos para cubrir ambas atribuciones de la misma regla."
+        "reason": "Wildcard única y efectiva para side-tab (spec 007-cierre-pendientes-v2): cubre las tres atribuciones conocidas del hallazgo — (1) el stripe tricolor del header (.app-header::after), identidad visual central de Mundial 2026 (FR-010) documentado en DESIGN.md como parte del North Star 'la iluminación del estadio', atribuido tanto a styles.css:89 como a index.html:0 porque el motor de cascada estática evalúa la página renderizada completa además del archivo de origen; (2) el borde border-left: 3px solid var(--gold) de .side-tab/.match-card, indicador de estado líder/completado documentado en DESIGN.md (Cards/Containers); (3) el borde border-left: 3px solid var(--green) del mismo patrón para fase de grupos (verde=grupos). Antes de esta spec existían además dos entradas con 'value' puntual para los casos (2) y (3) que nunca tuvieron efecto: side-tab no está en la lista directValueRules del checker (impeccable-config.mjs), así que extractFindingIgnoreValue() nunca produce un valor comparable para esta regla y esas dos entradas jamás suprimieron nada — la wildcard de abajo era, ya antes, la única que efectivamente cubría los 4 hallazgos. Se eliminaron esas dos entradas muertas; el conteo del checker no cambia (verificado: 0 hallazgos antes y después)."
       },
       {
         "rule": "design-system-color",
@@ -86,7 +74,7 @@
           "index.html"
         ],
         "createdAt": "2026-08-29T12:00:00.000Z",
-        "reason": "No es una limitación técnica del checker (a diferencia de cramped-padding/side-tab) — es un desacuerdo de criterio entre la heurística genérica anti-'AI slop' y el sistema de diseño ya ratificado del proyecto. Los 12 glows (dorado del campeón, azul de botón primario/foco de input, verde de botón success, rojo de sortear-equipos) son exactamente el 'Shadow Vocabulary' de DESIGN.md (Glow Dorado, Glow de Botón Primario, Halo de Foco de Input) — 'corregirlos' significaría aplanar identidad visual ya documentada y aprobada, contradiciendo DESIGN.md y el North Star. Confirmado explícitamente por el usuario en spec 004 tras señalar la coincidencia exacta; no se pudo acotar a selectores puntuales (a diferencia de side-tab) porque dark-glow no está en la lista directValueRules del checker (impeccable-config.mjs) — no tiene valor extraíble por hallazgo, solo admite wildcard por archivo, mismo límite técnico que ya hacía inefectivos los 2 side-tab de valor específico preexistentes."
+        "reason": "No es una limitación técnica del checker (a diferencia de cramped-padding/side-tab) — es un desacuerdo de criterio entre la heurística genérica anti-'AI slop' y el sistema de diseño ya ratificado del proyecto. Los 12 glows (dorado del campeón, azul de botón primario/foco de input, verde de botón success, rojo de sortear-equipos) son exactamente el 'Shadow Vocabulary' de DESIGN.md (Glow Dorado, Glow de Botón Primario, Halo de Foco de Input) — 'corregirlos' significaría aplanar identidad visual ya documentada y aprobada, contradiciendo DESIGN.md y el North Star. Confirmado explícitamente por el usuario en spec 004 tras señalar la coincidencia exacta; no se pudo acotar a selectores puntuales (a diferencia de side-tab) porque dark-glow no está en la lista directValueRules del checker (impeccable-config.mjs) — no tiene valor extraíble por hallazgo, solo admite wildcard por archivo, mismo límite técnico que hacía inefectivas las entradas de valor específico que existieron para side-tab (eliminadas en spec 007-cierre-pendientes-v2 por esa misma razón). Reconfirmado en spec 007-cierre-pendientes-v2: se revisó de nuevo el diseño real de index.html contra DESIGN.md y los 12 hallazgos siguen correspondiendo exactamente a los 12 glows documentados en el Shadow Vocabulary — se mantiene esta wildcard tal cual, como decisión deliberada y documentada, no heredada por inercia. Cualquier glow NUEVO que se agregue a index.html a futuro (fuera de esos 12) requiere revisión manual contra DESIGN.md antes de asumir que esta excepción lo cubre — la wildcard no distingue un glow aprobado de un glow nuevo sin revisar."
       },
       {
         "rule": "flat-type-hierarchy",
