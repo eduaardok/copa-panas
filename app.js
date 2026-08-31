@@ -1541,7 +1541,7 @@ function actualizarSeccionDesempate() {
 
   document.getElementById('penales-titulo').textContent = usarPenales
     ? 'Empate — define por penales:'
-    : 'Empate — elegí quién avanza:';
+    : 'Empate — elige quién avanza:';
   document.getElementById('penal-local-text').textContent = usarPenales
     ? `${local?.nombre || '?'} gana penales`
     : `Avanza ${local?.nombre || '?'}`;

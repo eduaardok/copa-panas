@@ -1,0 +1,86 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 838" width="640" height="838" role="img" aria-labelledby="flujoTitulo">
+  <title id="flujoTitulo">Flujo de un torneo en Copa Panas</title>
+  <defs>
+    <marker id="flecha" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#5b6472" />
+    </marker>
+  </defs>
+
+  <rect x="0" y="0" width="640" height="838" rx="18" fill="#07090f" />
+
+  <!-- conectores -->
+  <g stroke="#5b6472" stroke-width="2" marker-end="url(#flecha)">
+    <line x1="320" y1="80" x2="320" y2="116" />
+    <line x1="320" y1="180" x2="320" y2="216" />
+    <line x1="320" y1="280" x2="320" y2="316" />
+    <line x1="320" y1="380" x2="320" y2="416" />
+    <line x1="320" y1="480" x2="320" y2="516" />
+    <line x1="320" y1="580" x2="320" y2="616" />
+    <line x1="320" y1="680" x2="320" y2="716" />
+  </g>
+
+  <!-- 1. Setup inicial (azul) -->
+  <g>
+    <rect x="80" y="20" width="480" height="60" rx="10" fill="#11141d" stroke="#242938" stroke-width="1.5" />
+    <rect x="80" y="20" width="5" height="60" rx="2.5" fill="#0052c8" />
+    <text x="108" y="45" font-family="Arial, Helvetica, sans-serif" font-size="17" font-weight="700" fill="#f2f4f8">Setup inicial</text>
+    <text x="108" y="66" font-family="Arial, Helvetica, sans-serif" font-size="12.5" fill="#9aa3b2">Nombre del torneo, logo y lista de jugadores</text>
+  </g>
+
+  <!-- 2. Asignación de equipos (dorado) -->
+  <g>
+    <rect x="80" y="120" width="480" height="60" rx="10" fill="#11141d" stroke="#242938" stroke-width="1.5" />
+    <rect x="80" y="120" width="5" height="60" rx="2.5" fill="#c9a84c" />
+    <text x="108" y="145" font-family="Arial, Helvetica, sans-serif" font-size="17" font-weight="700" fill="#f2f4f8">Asignación de equipos</text>
+    <text x="108" y="166" font-family="Arial, Helvetica, sans-serif" font-size="12.5" fill="#9aa3b2">Sorteo animado o elección manual, por competición</text>
+  </g>
+
+  <!-- 3. Configuración de grupos (azul) -->
+  <g>
+    <rect x="80" y="220" width="480" height="60" rx="10" fill="#11141d" stroke="#242938" stroke-width="1.5" />
+    <rect x="80" y="220" width="5" height="60" rx="2.5" fill="#0052c8" />
+    <text x="108" y="245" font-family="Arial, Helvetica, sans-serif" font-size="17" font-weight="700" fill="#f2f4f8">Configuración de grupos</text>
+    <text x="108" y="266" font-family="Arial, Helvetica, sans-serif" font-size="12.5" fill="#9aa3b2">Cabezas de grupo con sorteo, o armado manual</text>
+  </g>
+
+  <!-- 4. Fase de grupos (verde) -->
+  <g>
+    <rect x="80" y="320" width="480" height="60" rx="10" fill="#11141d" stroke="#242938" stroke-width="1.5" />
+    <rect x="80" y="320" width="5" height="60" rx="2.5" fill="#00a64e" />
+    <text x="108" y="345" font-family="Arial, Helvetica, sans-serif" font-size="17" font-weight="700" fill="#f2f4f8">Fase de grupos</text>
+    <text x="108" y="366" font-family="Arial, Helvetica, sans-serif" font-size="12.5" fill="#9aa3b2">Calendario automático, tabla con desempate completo</text>
+  </g>
+
+  <!-- 5. Definir clasificados (dorado) -->
+  <g>
+    <rect x="80" y="420" width="480" height="60" rx="10" fill="#11141d" stroke="#242938" stroke-width="1.5" />
+    <rect x="80" y="420" width="5" height="60" rx="2.5" fill="#c9a84c" />
+    <text x="108" y="445" font-family="Arial, Helvetica, sans-serif" font-size="17" font-weight="700" fill="#f2f4f8">Definir clasificados</text>
+    <text x="108" y="466" font-family="Arial, Helvetica, sans-serif" font-size="12.5" fill="#9aa3b2">Selección libre de quién avanza, con atajos Top 4/8/16</text>
+  </g>
+
+  <!-- 6. Armar cruces (rojo) -->
+  <g>
+    <rect x="80" y="520" width="480" height="60" rx="10" fill="#11141d" stroke="#242938" stroke-width="1.5" />
+    <rect x="80" y="520" width="5" height="60" rx="2.5" fill="#e0182d" />
+    <text x="108" y="545" font-family="Arial, Helvetica, sans-serif" font-size="17" font-weight="700" fill="#f2f4f8">Armar cruces</text>
+    <text x="108" y="566" font-family="Arial, Helvetica, sans-serif" font-size="12.5" fill="#9aa3b2">Quién enfrenta a quién en la llave de eliminación</text>
+  </g>
+
+  <!-- 7. Eliminación directa (rojo) -->
+  <g>
+    <rect x="80" y="620" width="480" height="60" rx="10" fill="#11141d" stroke="#242938" stroke-width="1.5" />
+    <rect x="80" y="620" width="5" height="60" rx="2.5" fill="#e0182d" />
+    <text x="108" y="645" font-family="Arial, Helvetica, sans-serif" font-size="17" font-weight="700" fill="#f2f4f8">Eliminación directa</text>
+    <text x="108" y="666" font-family="Arial, Helvetica, sans-serif" font-size="12.5" fill="#9aa3b2">Bracket visual, penales en empate, nombres de ronda correctos</text>
+  </g>
+
+  <!-- 8. Campeón (dorado, destacado con glow) -->
+  <g>
+    <rect x="60" y="720" width="520" height="98" rx="14" fill="#161a10" stroke="#c9a84c" stroke-width="2" />
+    <circle cx="120" cy="769" r="26" fill="#c9a84c" opacity="0.18" />
+    <path d="M110 758 h20 v6 a10 10 0 0 1 -20 0 z M118 764 v10 M112 780 h16" stroke="#c9a84c" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round" />
+    <text x="158" y="763" font-family="Arial, Helvetica, sans-serif" font-size="21" font-weight="800" fill="#c9a84c" letter-spacing="1">CAMPEÓN</text>
+    <text x="158" y="785" font-family="Arial, Helvetica, sans-serif" font-size="12.5" fill="#c7bd9e">Pantalla especial con animación de confetti</text>
+  </g>
+</svg>
