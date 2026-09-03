@@ -83,7 +83,7 @@ const COMPETICIONES = {
 
     // Formato sugerido por defecto — el usuario siempre puede editarlo (D3/FR-004).
     // Reproduce el comportamiento actual: partido único + penales activos.
-    formatoDefault: { grupos: 'unico', eliminacion: 'unico', penales: true }
+    formatoDefault: { grupos: 'unico', eliminacion: 'unico', final: 'heredar', penales: true }
   },
 
   champions: {
@@ -126,7 +126,7 @@ const COMPETICIONES = {
     },
 
     // D3: Champions sugiere ida/vuelta en grupos y eliminación.
-    formatoDefault: { grupos: 'ida_vuelta', eliminacion: 'ida_vuelta', penales: true }
+    formatoDefault: { grupos: 'ida_vuelta', eliminacion: 'ida_vuelta', final: 'unico', penales: true }
   }
 };
 

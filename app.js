@@ -583,6 +583,7 @@ function inicializarSetup() {
 
   seleccionarFormatoUI('grupos', estado.configFormato.grupos);
   seleccionarFormatoUI('elim', estado.configFormato.eliminacion);
+  seleccionarFormatoUI('final', estado.configFormato.final || 'heredar');
   document.getElementById('btn-formato-penales').setAttribute('aria-checked', estado.configFormato.penales ? 'true' : 'false');
 
   renderizarListaJugadores();
@@ -590,8 +591,8 @@ function inicializarSetup() {
 }
 
 function seleccionarFormatoUI(prefijo, valor) {
-  const idSufijo = valor === 'ida_vuelta' ? 'ida-vuelta' : 'unico';
-  ['unico', 'ida-vuelta'].forEach(v => {
+  const idSufijo = valor === 'ida_vuelta' ? 'ida-vuelta' : (valor === 'heredar' ? 'heredar' : 'unico');
+  ['unico', 'ida-vuelta', 'heredar'].forEach(v => {
     document.getElementById(`btn-formato-${prefijo}-${v}`)?.classList.toggle('active', v === idSufijo);
   });
 }
@@ -716,9 +717,14 @@ function confirmarJugadores() {
   }));
 
   // FR-004/D3: el formato queda fijo para este torneo recién en este punto
+  let formatoFinal = 'heredar';
+  if (document.getElementById('btn-formato-final-unico').classList.contains('active')) formatoFinal = 'unico';
+  else if (document.getElementById('btn-formato-final-ida-vuelta').classList.contains('active')) formatoFinal = 'ida_vuelta';
+
   estado.configFormato = {
     grupos: document.getElementById('btn-formato-grupos-ida-vuelta').classList.contains('active') ? 'ida_vuelta' : 'unico',
     eliminacion: document.getElementById('btn-formato-elim-ida-vuelta').classList.contains('active') ? 'ida_vuelta' : 'unico',
+    final: formatoFinal,
     penales: document.getElementById('btn-formato-penales').getAttribute('aria-checked') === 'true'
   };
 
@@ -1480,7 +1486,7 @@ function verificarFinFaseGrupos() {
 // Un cruce a ida/vuelta solo puede definirse por penales/manual una vez
 // jugado el leg 2 (recién ahí se conoce el marcador agregado).
 function esUltimoLeg(partido) {
-  if (estado.configFormato.eliminacion !== 'ida_vuelta') return true;
+  if (legsDeCruce(partido.cruceId).length < 2) return true;
   return (partido.leg || 1) === 2;
 }
 
@@ -1570,7 +1576,7 @@ function abrirModalResultado(partidoId, tipo) {
   const local = jugadorPorId(partido.localId);
   const visitante = jugadorPorId(partido.visitanteId);
 
-  const sufijoLeg = tipo === 'eliminacion' && estado.configFormato.eliminacion === 'ida_vuelta'
+  const sufijoLeg = tipo === 'eliminacion' && legsDeCruce(partido.cruceId).length > 1
     ? ` (${partido.leg === 2 ? 'vuelta' : 'ida'})` : '';
   document.getElementById('resultado-local-nombre').textContent = `${local?.nombre || '?'} (${local?.equipo || ''})${sufijoLeg}`;
   document.getElementById('resultado-visitante-nombre').textContent = `${visitante?.nombre || '?'} (${visitante?.equipo || ''})`;
@@ -1796,6 +1802,18 @@ function renderizarCruces() {
   }
 }
 
+// Un cruce único en la ronda a generar es la final (incluido el caso borde
+// de un torneo que arranca directo en la final, con 2 clasificados). Ahí
+// aplica el override de configFormato.final en vez del formato general de
+// eliminación (Feature: formato de final configurable).
+function formatoRondaEliminacion(numCruces) {
+  if (numCruces === 1) {
+    const formatoFinal = estado.configFormato.final;
+    if (formatoFinal && formatoFinal !== 'heredar') return formatoFinal;
+  }
+  return estado.configFormato.eliminacion;
+}
+
 function confirmarClasificados() {
   const selArr = [..._seleccionados];
   if (selArr.length < 2) { mostrarToast('Selecciona al menos 2 jugadores', 'error'); return; }
@@ -1823,7 +1841,7 @@ function confirmarClasificados() {
   document.getElementById('cruces-validation').classList.add('hidden');
   estado.clasificados = usados;
   estado.cruces = cruces;
-  estado.partidos_eliminacion = generarPartidosEliminacion(cruces, 0, estado.configFormato.eliminacion);
+  estado.partidos_eliminacion = generarPartidosEliminacion(cruces, 0, formatoRondaEliminacion(cruces.length));
   estado.fase = 'eliminacion';
   guardar();
   mostrarPantalla('eliminacion');
@@ -1877,7 +1895,7 @@ function procesarAvanceEliminacion(cruceId) {
   }
 
   if (nuevosCruces.length > 0) {
-    const nuevosPartidos = generarPartidosEliminacion(nuevosCruces, rondaActual + 1, estado.configFormato.eliminacion);
+    const nuevosPartidos = generarPartidosEliminacion(nuevosCruces, rondaActual + 1, formatoRondaEliminacion(nuevosCruces.length));
     estado.partidos_eliminacion.push(...nuevosPartidos);
     rondaActiva = rondaActual + 1;
     guardar();
@@ -1918,19 +1936,18 @@ function renderizarEliminacion() {
   const roundDiv = document.createElement('div');
   roundDiv.className = 'bracket-round';
 
-  const idaVuelta = estado.configFormato.eliminacion === 'ida_vuelta';
-
   partidosRonda.forEach(p => {
     const local = jugadorPorId(p.localId);
     const visitante = jugadorPorId(p.visitanteId);
     const localGanador = p.jugado && p.ganadorId === p.localId;
     const visitanteGanador = p.jugado && p.ganadorId === p.visitanteId;
 
-    const legLabel = idaVuelta ? `<div class="text-xs text-center text-gray-400 mb-1">${p.leg === 2 ? 'VUELTA' : 'IDA'}</div>` : '';
+    const idaVueltaCruce = legsDeCruce(p.cruceId).length > 1;
+    const legLabel = idaVueltaCruce ? `<div class="text-xs text-center text-gray-400 mb-1">${p.leg === 2 ? 'VUELTA' : 'IDA'}</div>` : '';
 
     // Marcador agregado (solo en el leg 2, cuando ya se puede calcular)
     let agregadoHTML = '';
-    if (idaVuelta && p.leg === 2) {
+    if (idaVueltaCruce && p.leg === 2) {
       const otro = otroLegDeCruce(p);
       if (otro && otro.jugado && p.jugado) {
         const { golesA, golesB } = calcularAgregadoProspectivo(p, p.golesLocal, p.golesVisitante);
@@ -2288,6 +2305,9 @@ function vincularEventos() {
   document.getElementById('btn-formato-grupos-ida-vuelta')?.addEventListener('click', () => seleccionarFormatoUI('grupos', 'ida_vuelta'));
   document.getElementById('btn-formato-elim-unico')?.addEventListener('click', () => seleccionarFormatoUI('elim', 'unico'));
   document.getElementById('btn-formato-elim-ida-vuelta')?.addEventListener('click', () => seleccionarFormatoUI('elim', 'ida_vuelta'));
+  document.getElementById('btn-formato-final-heredar')?.addEventListener('click', () => seleccionarFormatoUI('final', 'heredar'));
+  document.getElementById('btn-formato-final-unico')?.addEventListener('click', () => seleccionarFormatoUI('final', 'unico'));
+  document.getElementById('btn-formato-final-ida-vuelta')?.addEventListener('click', () => seleccionarFormatoUI('final', 'ida_vuelta'));
   document.getElementById('btn-formato-penales')?.addEventListener('click', () => {
     const btn = document.getElementById('btn-formato-penales');
     const activo = btn.getAttribute('aria-checked') === 'true';
